@@ -147,7 +147,7 @@ public interface Squeak
     public final static int Point_x= 0;
     public final static int Point_y= 1;
 
-    // Largetinteger layout:
+    // Largeinteger layout:
     public final static int Largeinteger_bytes= 0;
     public final static int Largeinteger_neg= 1;
 

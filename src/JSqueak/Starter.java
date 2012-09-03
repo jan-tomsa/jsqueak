@@ -73,7 +73,7 @@ public class Starter
     public static void main(String[] args) throws IOException, NullPointerException, java.lang.ArrayIndexOutOfBoundsException 
     {
         SqueakVM.initSmallIntegerCache();
-        SqueakImage img = args.length > 0 ? locateSavedImage( args[1] )
+        SqueakImage img = args.length > 0 ? locateSavedImage( args[0] )
                                           : locateStartableImage();
         SqueakVM vm= new SqueakVM(img);
         vm.run(); 

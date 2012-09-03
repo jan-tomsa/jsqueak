@@ -211,8 +211,8 @@ public class SqueakImage
         return -1;  //should not happen
     }
     
-    private final static int OTMinSize= 30000;
-    private final static int OTMaxSize= 60000;
+    private final static int OTMinSize=  500000;
+    private final static int OTMaxSize= 1600000;
     private final static int OTGrowSize= 10000;
     
     public short registerObject (SqueakObject obj) 
