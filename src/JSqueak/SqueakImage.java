@@ -39,6 +39,8 @@ import java.util.Hashtable;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import JSqueak.monitor.Monitor;
+
 /**
  * @author Daniel Ingalls
  *
@@ -66,6 +68,8 @@ public class SqueakImage
     
     // FIXME: Access this through a method
     SqueakObject specialObjectsArray;
+
+	private Monitor monitor;
     
     public SqueakImage(InputStream raw) throws IOException 
     {
@@ -74,8 +78,9 @@ public class SqueakImage
         loaded(raw); 
     }
     
-    public SqueakImage( File fn ) throws IOException 
+    public SqueakImage( File fn, Monitor monitor ) throws IOException 
     {
+    	this.monitor = monitor;
         imageFile = fn;
         loaded(fn); 
     }
@@ -302,6 +307,7 @@ public class SqueakImage
     {
         //System.err.println("-3.0" + Double.doubleToLongBits(-3.0d));
         System.out.println("Start reading at " + System.currentTimeMillis());
+        monitor.logMessage("Start reading image at " + System.currentTimeMillis());
         objectTable = new WeakReference[OTMinSize];
         otMaxUsed= -1;
         Hashtable oopMap= new Hashtable(30000);
@@ -325,16 +331,14 @@ public class SqueakImage
         int extraVMMemory= intFromInputSwapped(in, doSwap);
         in.skipBytes(headerSize - (9*4)); //skip to end of header
         
-        for (int i= 0; i<endOfMemory;) 
-        {
+        for (int i= 0; i<endOfMemory;) {
             int nWords= 0;
             int classInt= 0;
             int[] data;
             int format= 0;
             int hash= 0;
             int header= intFromInputSwapped(in, doSwap);
-            switch (header & Squeak.HeaderTypeMask) 
-            {
+            switch (header & Squeak.HeaderTypeMask) {
                 case Squeak.HeaderTypeSizeAndClass:
                     nWords= header>>2;
                     classInt= intFromInputSwapped(in, doSwap) - Squeak.HeaderTypeSizeAndClass;
@@ -380,13 +384,18 @@ public class SqueakImage
         int oldOop= specialObjectsArray.oldOopAt(Squeak.splOb_ClassFloat);
         SqueakObject floatClass= ((SqueakObject) oopMap.get(new Integer(oldOop)));
         System.out.println("Start installs at " + System.currentTimeMillis());
+        monitor.logMessage("Start installs at " + System.currentTimeMillis());
         for (int i= 0; i<otMaxUsed; i++) 
         {
+        	SqueakObject squeakObject = (SqueakObject) objectTable[i].get();
+        	monitor.logMessage("Installing: "+squeakObject.hash);
             // Don't need oldBaseAddr here**
-            ((SqueakObject) objectTable[i].get()).install(oopMap,ccArray,floatClass); 
+        	squeakObject.install(oopMap,ccArray,floatClass); 
+            //((SqueakObject) objectTable[i].get()).install(oopMap,ccArray,floatClass);
         }
         
         System.out.println("Done installing at " + System.currentTimeMillis());
+        monitor.logMessage("Done installing at " + System.currentTimeMillis());
         //Proper version of spl objs -- it's a good object
         specialObjectsArray= (SqueakObject)(oopMap.get(new Integer(specialObjectsOopInt)));
         otMaxOld= otMaxUsed; 

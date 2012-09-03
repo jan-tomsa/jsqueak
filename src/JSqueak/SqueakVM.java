@@ -120,9 +120,12 @@ public class SqueakVM {
     int nAllocatedContexts= 0;
     Object[] stackedReceivers= new Object[100];
     Object[] stackedSelectors= new Object[100];
+	private Monitor monitor;
     
     
-	public SqueakVM(SqueakImage anImage) {
+	public SqueakVM(SqueakImage anImage, Monitor monitor) {
+		this.monitor = monitor; 
+		monitor.logMessage("Creating VM");
 		// canonical creation
 		image = anImage;
 		image.bindVM(this);
