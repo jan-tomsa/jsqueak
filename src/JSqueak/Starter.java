@@ -32,6 +32,7 @@ import java.net.URL;
 import JSqueak.image.SqueakImage;
 import JSqueak.monitor.Monitor;
 import JSqueak.monitor.MonitorFrame;
+import JSqueak.vm.SqueakVM;
 
 public class Starter {
     private static final String MINI_IMAGE_FILE_NAME = "mini.image.gz";

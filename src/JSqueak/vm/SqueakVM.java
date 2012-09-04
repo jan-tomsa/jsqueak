@@ -21,11 +21,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package JSqueak;
+package JSqueak.vm;
 
 import java.io.FileInputStream;
 import java.util.Arrays;
 
+import JSqueak.Squeak;
 import JSqueak.image.SqueakImage;
 import JSqueak.monitor.Monitor;
 
@@ -37,37 +38,37 @@ import JSqueak.monitor.Monitor;
 public class SqueakVM {
     private static final int MAX_COUNTER = 100000;
 	// static state:
-    SqueakImage image;
+    private SqueakImage image;
     SqueakPrimitiveHandler primHandler;
     
     public SqueakObject nilObj;
-    SqueakObject falseObj;
-    SqueakObject trueObj;
+    private SqueakObject falseObj;
+    private SqueakObject trueObj;
     Object[] specialObjects;
     Object[] specialSelectors;
     // dynamic state:
     Object receiver= nilObj;
-    SqueakObject activeContext= nilObj;
+    private SqueakObject activeContext= nilObj;
     SqueakObject homeContext= nilObj;
-    int sp;
-    SqueakObject method= nilObj;
+    private int sp;
+    private SqueakObject method= nilObj;
     byte[] methodBytes;
-    int pc;
-    boolean success;
+    private int pc;
+    private boolean success;
     private SqueakObject freeContexts;
     private SqueakObject freeLargeContexts;
-    int reclaimableContextCount; //Not #available, but how far down the current stack is recyclable
-    SqueakObject verifyAtSelector;
-    SqueakObject verifyAtClass;
+    private int reclaimableContextCount; //Not #available, but how far down the current stack is recyclable
+    private SqueakObject verifyAtSelector;
+    private SqueakObject verifyAtClass;
     
-    boolean screenEvent = false;
+    private boolean screenEvent = false;
     
-    int lowSpaceThreshold;
+    private int lowSpaceThreshold;
     private int interruptCheckCounter;
     private int interruptCheckCounterFeedBackReset;
     private int interruptChecksEveryNms;
     private int nextPollTick;
-            int nextWakeupTick;
+            private int nextWakeupTick;
     private int lastTick;
     private int interruptKeycode;
     private boolean interruptPending;
@@ -88,7 +89,7 @@ public class SqueakVM {
     
     static Integer[] cachedInts; // reusable SmallIntegers save space, reduce GC traffic
     
-	static void initSmallIntegerCache() {
+	public static void initSmallIntegerCache() {
 		cachedInts = new Integer[maxCachedInt - minCachedInt + 1];
 		for (int i = minCachedInt; i <= maxCachedInt; i++)
 			cachedInts[i - minCachedInt] = new Integer(i);
@@ -128,8 +129,8 @@ public class SqueakVM {
 		this.monitor = monitor; 
 		monitor.logMessage("Creating VM");
 		// canonical creation
-		image = anImage;
-		image.bindVM(this);
+		setImage(anImage);
+		getImage().bindVM(this);
 		primHandler = new SqueakPrimitiveHandler(this);
 		loadImageState();
 		initVMState();
@@ -145,7 +146,7 @@ public class SqueakVM {
 	}
     
 	private void loadImageState() {
-		SqueakObject specialObjectsArray = image.getSpecialObjectsArray();
+		SqueakObject specialObjectsArray = getImage().getSpecialObjectsArray();
 		specialObjects = specialObjectsArray.pointers;
 		nilObj = getSpecialObject(Squeak.splOb_NilObject);
 		falseObj = getSpecialObject(Squeak.splOb_FalseObject);
@@ -158,12 +159,20 @@ public class SqueakVM {
 		return (SqueakObject) specialObjects[zeroBasedIndex];
 	}
     
+	public void setSpecialObject(int zeroBasedIndex, Object obj) {
+		specialObjects[zeroBasedIndex] = obj;
+	}
+	
+	public Object getSpecialSelector(int zeroBasedIndex) {
+		return specialSelectors[zeroBasedIndex];
+	}
+	
 	private void initVMState() {
 		interruptCheckCounter = 0;
 		interruptCheckCounterFeedBackReset = 1000;
 		interruptChecksEveryNms = 3;
 		nextPollTick = 0;
-		nextWakeupTick = 0;
+		setNextWakeupTick(0);
 		lastTick = 0;
 		interruptKeycode = 2094; // "cmd-."
 		interruptPending = false;
@@ -174,7 +183,7 @@ public class SqueakVM {
 		pendingFinalizationSignals = 0;
 		freeContexts = nilObj;
 		freeLargeContexts = nilObj;
-		reclaimableContextCount = 0;
+		setReclaimableContextCount(0);
 		initMethodCache();
 	}
 
@@ -183,8 +192,8 @@ public class SqueakVM {
 		SqueakObject sched = schedAssn.getPointerNI(Squeak.Assn_value);
 		SqueakObject proc = sched.getPointerNI(Squeak.ProcSched_activeProcess);
 		activeContext = proc.getPointerNI(Squeak.Proc_suspendedContext);
-		fetchContextRegisters(activeContext);
-		reclaimableContextCount = 0;
+		fetchContextRegisters(getActiveContext());
+		setReclaimableContextCount(0);
 	}
 
 	public void newActiveContext(SqueakObject newContext) {
@@ -208,10 +217,10 @@ public class SqueakVM {
 		}
 		receiver = homeContext.getPointer(Squeak.Context_receiver);
 		method = (SqueakObject) meth;
-		methodBytes = (byte[]) method.bits;
+		methodBytes = (byte[]) getMethod().bits;
 		pc = decodeSqueakPC(
 				ctxt.getPointerI(Squeak.Context_instructionPointer), method);
-		if (pc < -1)
+		if (getPc() < -1)
 			dumpStack();
 		sp = decodeSqueakSP(ctxt.getPointerI(Squeak.Context_stackPointer));
 	}
@@ -221,10 +230,10 @@ public class SqueakVM {
 		// see fetchContextRegisters for symmetry
 		// expects activeContext, pc, sp, and method state vars to still be
 		// valid
-		activeContext.setPointer(Squeak.Context_instructionPointer,
-				encodeSqueakPC(pc, method));
-		activeContext.setPointer(Squeak.Context_stackPointer,
-				encodeSqueakSP(sp));
+		getActiveContext().setPointer(Squeak.Context_instructionPointer,
+				encodeSqueakPC(getPc(), getMethod()));
+		getActiveContext().setPointer(Squeak.Context_stackPointer,
+				encodeSqueakSP(getSp()));
 	}
     
 	public Integer encodeSqueakPC(int intPC, SqueakObject aMethod) {
@@ -294,28 +303,28 @@ public class SqueakVM {
     
     public Object pop() {
         //Note leaves garbage above SP.  Serious reclaim should store nils above SP
-        return activeContext.pointers[sp--]; 
+        return getActiveContext().pointers[sp--]; 
     }
     
     public void popN(int nToPop) {
-        sp-= nToPop; 
+    	sp-= nToPop; 
     }
     
     public void push(Object oop) {
-        activeContext.pointers[++sp] = oop; 
+        getActiveContext().pointers[++sp] = oop; 
     }
     
     public void popNandPush(int nToPop,Object oop) 
     {
-        activeContext.pointers[sp-= nToPop-1] = oop; 
+        getActiveContext().pointers[sp-= nToPop-1] = oop; 
     }
     
     public Object top() {
-        return activeContext.pointers[sp]; 
+        return getActiveContext().pointers[getSp()]; 
     }
     
     public Object stackValue(int depthIntoStack) {
-        return activeContext.pointers[sp-depthIntoStack]; 
+        return getActiveContext().pointers[getSp()-depthIntoStack]; 
     }
     
     // INNER BYTECODE INTERPRETER:
@@ -339,7 +348,7 @@ public class SqueakVM {
         		masterCounter++;
         		monitor.logMessage( Long.toString(masterCounter) );
         	}
-            b= methodBytes[++pc] & 0xff;
+        	b= methodBytes[++pc] & 0xff;
             switch (b) { /* The Main Bytecode Dispatch Loop */ 
               // load receiver variable
               case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7: 
@@ -356,14 +365,14 @@ public class SqueakVM {
               case 40: case 41: case 42: case 43: case 44: case 45: case 46: case 47: 
               case 48: case 49: case 50: case 51: case 52: case 53: case 54: case 55: 
               case 56: case 57: case 58: case 59: case 60: case 61: case 62: case 63: 
-                  push(method.methodGetLiteral(b&0x1F)); break;
+                  push(getMethod().methodGetLiteral(b&0x1F)); break;
       
               // loadLiteralIndirect
               case 64: case 65: case 66: case 67: case 68: case 69: case 70: case 71: 
               case 72: case 73: case 74: case 75: case 76: case 77: case 78: case 79: 
               case 80: case 81: case 82: case 83: case 84: case 85: case 86: case 87: 
               case 88: case 89: case 90: case 91: case 92: case 93: case 94: case 95: 
-                  push(((SqueakObject)method.methodGetLiteral(b&0x1F)).getPointer(Squeak.Assn_value)); break;
+                  push(((SqueakObject)getMethod().methodGetLiteral(b&0x1F)).getPointer(Squeak.Assn_value)); break;
       
               // storeAndPop rcvr, temp
               case 96: case 97: case 98: case 99: case 100: case 101: case 102: case 103: 
@@ -373,8 +382,8 @@ public class SqueakVM {
       
               // Quick push constant
               case 112: push(receiver); break;
-              case 113: push(trueObj); break;
-              case 114: push(falseObj); break;
+              case 113: push(getTrueObj()); break;
+              case 114: push(getFalseObj()); break;
               case 115: push(nilObj); break;
               case 116: push(smallFromInt(-1)); break;
               case 117: push(smallFromInt(0)); break;
@@ -383,11 +392,11 @@ public class SqueakVM {
       
               // Quick return
               case 120: doReturn(receiver,homeContext.getPointerNI(Squeak.Context_sender)); break;
-              case 121: doReturn(trueObj,homeContext.getPointerNI(Squeak.Context_sender)); break;
-              case 122: doReturn(falseObj,homeContext.getPointerNI(Squeak.Context_sender)); break;
+              case 121: doReturn(getTrueObj(),homeContext.getPointerNI(Squeak.Context_sender)); break;
+              case 122: doReturn(getFalseObj(),homeContext.getPointerNI(Squeak.Context_sender)); break;
               case 123: doReturn(nilObj,homeContext.getPointerNI(Squeak.Context_sender)); break;
               case 124: doReturn(pop(),homeContext.getPointerNI(Squeak.Context_sender)); break;
-              case 125: doReturn(pop(),activeContext.getPointerNI(Squeak.BlockContext_caller)); break;
+              case 125: doReturn(pop(),getActiveContext().getPointerNI(Squeak.BlockContext_caller)); break;
               case 126: nono(); break;
               case 127: nono(); break;
   
@@ -396,16 +405,16 @@ public class SqueakVM {
               case 129: extendedStore(nextByte()); break;
               case 130: extendedStorePop(nextByte()); break;
               // singleExtendedSend
-              case 131: b2= nextByte(); send(method.methodGetSelector(b2&31),b2>>5,false); break;
+              case 131: b2= nextByte(); send(getMethod().methodGetSelector(b2&31),b2>>5,false); break;
               case 132: doubleExtendedDoAnything(nextByte()); break;
               // singleExtendedSendToSuper
-              case 133: b2= nextByte(); send(method.methodGetSelector(b2&31),b2>>5,true); break;
+              case 133: b2= nextByte(); send(getMethod().methodGetSelector(b2&31),b2>>5,true); break;
               // secondExtendedSend
-              case 134: b2= nextByte(); send(method.methodGetSelector(b2&63),b2>>6,false); break;
+              case 134: b2= nextByte(); send(getMethod().methodGetSelector(b2&63),b2>>6,false); break;
               case 135: pop(); break; // pop
               case 136: push(top()); break;   // dup
               // push thisContext
-              case 137: push(activeContext); reclaimableContextCount= 0; break;
+              case 137: push(getActiveContext()); setReclaimableContextCount(0); break;
   
               //Unused...
               case 138: case 139: case 140: case 141: case 142: case 143: 
@@ -413,7 +422,7 @@ public class SqueakVM {
   
               // Short jmp
               case 144: case 145: case 146: case 147: case 148: case 149: case 150: case 151: 
-                  pc+= (b&7)+1; break;
+            	    pc+= (b&7)+1; break;
               // Short bfp
               case 152: case 153: case 154: case 155: case 156: case 157: case 158: case 159: 
                   jumpif (false,(b&7)+1); break;
@@ -431,37 +440,37 @@ public class SqueakVM {
                   jumpif (false,(b&3)*256 + nextByte()); break;
   
               // Arithmetic Ops... + - < > <= >= = ~=    * / \ @ lshift: lxor: land: lor:
-              case 176: success= true;
+              case 176: setSuccess(true);
                   if (!pop2AndPushIntResult(stackInteger(1)+stackInteger(0))) sendSpecial(b&0xF); break;   // PLUS +
-              case 177: success= true;
+              case 177: setSuccess(true);
                   if (!pop2AndPushIntResult(stackInteger(1)-stackInteger(0))) sendSpecial(b&0xF); break;   // PLUS +
-              case 178: success= true;
+              case 178: setSuccess(true);
                   if (!pushBoolAndPeek(stackInteger(1) < stackInteger(0))) sendSpecial(b&0xF); break;  // LESS <
-              case 179: success= true;
+              case 179: setSuccess(true);
                   if (!pushBoolAndPeek(stackInteger(1) > stackInteger(0))) sendSpecial(b&0xF); break;  // GRTR >
-              case 180: success= true;
+              case 180: setSuccess(true);
                   if (!pushBoolAndPeek(stackInteger(1) <= stackInteger(0)))  sendSpecial(b&0xF); break;  // LEQ <=
-              case 181: success= true;
+              case 181: setSuccess(true);
                   if (!pushBoolAndPeek(stackInteger(1) >= stackInteger(0)))  sendSpecial(b&0xF); break;  // GEQ >=
-              case 182: success= true;
+              case 182: setSuccess(true);
                   if (!pushBoolAndPeek(stackInteger(1) == stackInteger(0)))  sendSpecial(b&0xF); break;  // EQU =
-              case 183: success= true;
+              case 183: setSuccess(true);
                   if (!pushBoolAndPeek(stackInteger(1) != stackInteger(0)))  sendSpecial(b&0xF); break;  // NEQ ~=
-              case 184: success= true;
+              case 184: setSuccess(true);
                   if (!pop2AndPushIntResult(safeMultiply(stackInteger(1),stackInteger(0)))) sendSpecial(b&0xF); break;  // TIMES *
-              case 185: success= true;
+              case 185: setSuccess(true);
                   if (!pop2AndPushIntResult(quickDivide(stackInteger(1),stackInteger(0)))) sendSpecial(b&0xF); break;  // Divide /
-              case 186: success= true;
+              case 186: setSuccess(true);
                   if (!pop2AndPushIntResult(mod(stackInteger(1),stackInteger(0)))) sendSpecial(b&0xF); break;  // MOD \\
-              case 187: success= true;
+              case 187: setSuccess(true);
                   if (!primHandler.primitiveMakePoint()) sendSpecial(b&0xF); break;  // MakePt int@int
-              case 188: success= true; // Something is wrong with this one...
+              case 188: setSuccess(true); // Something is wrong with this one...
                   /*if (!pop2AndPushIntResult(safeShift(stackInteger(1),stackInteger(0))))*/ sendSpecial(b&0xF); break; // bitShift:
-              case 189: success= true;
+              case 189: setSuccess(true);
                   if (!pop2AndPushIntResult(div(stackInteger(1),stackInteger(0)))) sendSpecial(b&0xF); break;  // Divide //
-              case 190: success= true;
+              case 190: setSuccess(true);
                   if (!pop2AndPushIntResult(stackInteger(1) & stackInteger(0))) sendSpecial(b&0xF); break; // bitAnd:
-              case 191: success= true;
+              case 191: setSuccess(true);
                   if (!pop2AndPushIntResult(stackInteger(1) | stackInteger(0))) sendSpecial(b&0xF); break; // bitOr:
   
               // at:, at:put:, size, next, nextPut:, ...
@@ -473,13 +482,13 @@ public class SqueakVM {
               // Send Literal Selector with 0, 1, and 2 args
               case 208: case 209: case 210: case 211: case 212: case 213: case 214: case 215: 
               case 216: case 217: case 218: case 219: case 220: case 221: case 222: case 223: 
-                  send(method.methodGetSelector(b&0xF),0,false); break;
+                  send(getMethod().methodGetSelector(b&0xF),0,false); break;
               case 224: case 225: case 226: case 227: case 228: case 229: case 230: case 231: 
               case 232: case 233: case 234: case 235: case 236: case 237: case 238: case 239: 
-                  send(method.methodGetSelector(b&0xF),1,false); break;
+                  send(getMethod().methodGetSelector(b&0xF),1,false); break;
               case 240: case 241: case 242: case 243: case 244: case 245: case 246: case 247: 
               case 248: case 249: case 250: case 251: case 252: case 253: case 254: case 255:
-                  send(method.methodGetSelector(b&0xF),2,false); break; 
+                  send(getMethod().methodGetSelector(b&0xF),2,false); break; 
             }
         }
     }
@@ -496,8 +505,8 @@ public class SqueakVM {
         {
             //millisecond clock wrapped"
             nextPollTick= now + (nextPollTick - lastTick);
-            if (nextWakeupTick != 0)
-                nextWakeupTick= now + (nextWakeupTick - lastTick); 
+            if (getNextWakeupTick() != 0)
+                setNextWakeupTick(now + (getNextWakeupTick() - lastTick)); 
         }
         //Feedback logic attempts to keep interrupt response around 3ms...
         if ((now - lastTick) < interruptChecksEveryNms)  //wrapping is not a concern
@@ -527,9 +536,9 @@ public class SqueakVM {
             if (sema != nilObj)
                 primHandler.synchronousSignal(sema); 
         }
-        if ((nextWakeupTick != 0) && (now >= nextWakeupTick)) 
+        if ((getNextWakeupTick() != 0) && (now >= getNextWakeupTick())) 
         {
-            nextWakeupTick= 0; //reset timer interrupt
+            setNextWakeupTick(0); //reset timer interrupt
             sema= getSpecialObject(Squeak.splOb_TheTimerSemaphore);
             if (sema != nilObj) 
                 primHandler.synchronousSignal(sema); 
@@ -546,7 +555,7 @@ public class SqueakVM {
         Object top= pop();
         if (top == (condition? trueObj : falseObj))
         {
-            pc+= delta; 
+        	pc+= delta; 
             return; 
         }
         if (top == (condition? falseObj : trueObj))
@@ -566,8 +575,8 @@ public class SqueakVM {
         switch (nextByte>>6) {
             case 0: push(((SqueakObject)receiver).getPointer(lobits));break;
             case 1: push(homeContext.getPointer(Squeak.Context_tempFrameStart+lobits)); break;
-            case 2: push(method.methodGetLiteral(lobits)); break;
-            case 3: push(((SqueakObject)method.methodGetLiteral(lobits)).getPointer(Squeak.Assn_value)); break;
+            case 2: push(getMethod().methodGetLiteral(lobits)); break;
+            case 3: push(((SqueakObject)getMethod().methodGetLiteral(lobits)).getPointer(Squeak.Assn_value)); break;
         }
     }
 
@@ -577,7 +586,7 @@ public class SqueakVM {
             case 0: ((SqueakObject)receiver).setPointer(lobits,top()); break;
             case 1: homeContext.setPointer(Squeak.Context_tempFrameStart+lobits,top()); break;
             case 2: nono(); break;
-            case 3: ((SqueakObject)method.methodGetLiteral(lobits)).setPointer(Squeak.Assn_value,top()); break;
+            case 3: ((SqueakObject)getMethod().methodGetLiteral(lobits)).setPointer(Squeak.Assn_value,top()); break;
         }
     }
 
@@ -587,21 +596,21 @@ public class SqueakVM {
             case 0: ((SqueakObject)receiver).setPointer(lobits,pop()); break;
             case 1: homeContext.setPointer(Squeak.Context_tempFrameStart+lobits,pop()); break;
             case 2: nono(); break;
-            case 3: ((SqueakObject)method.methodGetLiteral(lobits)).setPointer(Squeak.Assn_value,pop()); break;
+            case 3: ((SqueakObject)getMethod().methodGetLiteral(lobits)).setPointer(Squeak.Assn_value,pop()); break;
         }
     }
 
     public void doubleExtendedDoAnything(int nextByte) {
         int byte3= nextByte();
         switch (nextByte>>5) {
-            case 0: send(method.methodGetSelector(byte3),nextByte&31,false); break;
-            case 1: send(method.methodGetSelector(byte3),nextByte&31,true); break;
+            case 0: send(getMethod().methodGetSelector(byte3),nextByte&31,false); break;
+            case 1: send(getMethod().methodGetSelector(byte3),nextByte&31,true); break;
             case 2: push(((SqueakObject)receiver).getPointer(byte3)); break;
-            case 3: push(method.methodGetLiteral(byte3)); break;
-            case 4: push(((SqueakObject)method.methodGetLiteral(byte3)).getPointer(Squeak.Assn_key)); break;
+            case 3: push(getMethod().methodGetLiteral(byte3)); break;
+            case 4: push(((SqueakObject)getMethod().methodGetLiteral(byte3)).getPointer(Squeak.Assn_key)); break;
             case 5: ((SqueakObject)receiver).setPointer(byte3,top()); break;
             case 6: ((SqueakObject)receiver).setPointer(byte3,pop()); break;
-            case 7: ((SqueakObject)method.methodGetLiteral(byte3)).setPointer(Squeak.Assn_key,top()); break;
+            case 7: ((SqueakObject)getMethod().methodGetLiteral(byte3)).setPointer(Squeak.Assn_key,top()); break;
         }
     }
 
@@ -610,7 +619,7 @@ public class SqueakVM {
 			cannotReturn();
 		if (targetContext.getPointer(Squeak.Context_instructionPointer) == nilObj)
 			cannotReturn();
-		SqueakObject thisContext = activeContext;
+		SqueakObject thisContext = getActiveContext();
 		while (thisContext != targetContext) {
 			if (thisContext == nilObj)
 				cannotReturn();
@@ -621,19 +630,19 @@ public class SqueakVM {
 		// No unwind to worry about, just peel back the stack (usually just to
 		// sender)
 		SqueakObject nextContext;
-		thisContext = activeContext;
+		thisContext = getActiveContext();
 		while (thisContext != targetContext) {
 			nextContext = thisContext.getPointerNI(Squeak.Context_sender);
 			thisContext.setPointer(Squeak.Context_sender, nilObj);
 			thisContext.setPointer(Squeak.Context_instructionPointer, nilObj);
-			if (reclaimableContextCount > 0) {
-				reclaimableContextCount--;
+			if (getReclaimableContextCount() > 0) {
+				setReclaimableContextCount(getReclaimableContextCount() - 1);
 				recycleIfPossible(thisContext);
 			}
 			thisContext = nextContext;
 		}
 		activeContext = thisContext;
-		fetchContextRegisters(activeContext);
+		fetchContextRegisters(getActiveContext());
 		push(returnValue);
 		// System.err.println("***returning " + printString(returnValue));
 	}
@@ -658,13 +667,13 @@ public class SqueakVM {
 		// returns an int and sets success
 		if (isSmallInt(maybeSmall))
 			return intFromSmall(((Integer) maybeSmall));
-		success = false;
+		setSuccess(false);
 		return 1;
 	}
     
 	public boolean pop2AndPushIntResult(int intResult) {
 		// Note returns sucess boolean
-		if (!success)
+		if (!isSuccess())
 			return false;
 		Object smallInt = smallFromInt(intResult);
 		if (smallInt != null) {
@@ -676,9 +685,9 @@ public class SqueakVM {
     
 	public boolean pushBoolAndPeek(boolean boolResult) {
 		// Peek ahead to see if next bytecode is a conditional jump
-		if (!success)
+		if (!isSuccess())
 			return false;
-		int originalPC = pc;
+		int originalPC = getPc();
 		int nextByte = nextByte();
 		if (nextByte >= 152 && nextByte < 160) {
 			// It's a BFP
@@ -700,7 +709,7 @@ public class SqueakVM {
 				pc += nextByte;
 			return true;
 		}
-		popNandPush(2, boolResult ? trueObj : falseObj);
+		popNandPush(2, boolResult ? getTrueObj() : getFalseObj());
 		pc = originalPC;
 		return true;
 	}
@@ -760,20 +769,20 @@ public class SqueakVM {
 		// stackedSelectors[stackDepth]=selector;
 		SqueakObject lookupClass = getClass(newRcvr);
 		if (doSuper) {
-			lookupClass = method.methodClassForSuper();
+			lookupClass = getMethod().methodClassForSuper();
 			lookupClass = lookupClass.getPointerNI(Squeak.Class_superclass);
 		}
-		int priorSP = sp; // to check if DNU changes argCount
+		int priorSP = getSp(); // to check if DNU changes argCount
 		MethodCacheEntry entry = findSelectorInClass(selector, argCount,
 				lookupClass);
 		newMethod = entry.method;
 		primIndex = entry.primIndex;
 		if (primIndex > 0) {
 			// note details for verification of at/atput primitives
-			verifyAtSelector = selector;
-			verifyAtClass = lookupClass;
+			setVerifyAtSelector(selector);
+			setVerifyAtClass(lookupClass);
 		}
-		executeNewMethod(newRcvr, newMethod, argCount + (sp - priorSP),
+		executeNewMethod(newRcvr, newMethod, argCount + (getSp() - priorSP),
 				primIndex);
 	} // DNU may affest argCount
 
@@ -825,7 +834,7 @@ public class SqueakVM {
 		// Bundle up receiver, args and selector as a messageObject
 		SqueakObject argArray = instantiateClass(
 				getSpecialObject(Squeak.splOb_ClassArray), argCount);
-		System.arraycopy(activeContext.pointers, sp - argCount + 1,
+		System.arraycopy(getActiveContext().pointers, getSp() - argCount + 1,
 				argArray.pointers, 0, argCount); // copy args from stack
 		SqueakObject message = instantiateClass(
 				getSpecialObject(Squeak.splOb_ClassMessage), 0);
@@ -874,7 +883,7 @@ public class SqueakVM {
 				return; // Primitive succeeded -- end of story
 		SqueakObject newContext = allocateOrRecycleContext(newMethod
 				.methodNeedsLargeFrame());
-		int methodNumLits = method.methodNumLits();
+		int methodNumLits = getMethod().methodNumLits();
 		// Our initial IP is -1, so first fetch gets bits[0]
 		// The stored IP should be 1-based index of *next* instruction, offset
 		// by hdr and lits
@@ -886,11 +895,11 @@ public class SqueakVM {
 		// Following store is in case we alloc without init; all other fields
 		// get stored
 		newContext.setPointer(Squeak.BlockContext_initialIP, nilObj);
-		newContext.setPointer(Squeak.Context_sender, activeContext);
+		newContext.setPointer(Squeak.Context_sender, getActiveContext());
 		// Copy receiver and args to new context
 		// Note this statement relies on the receiver slot being contiguous with
 		// args...
-		System.arraycopy(activeContext.pointers, sp - argumentCount,
+		System.arraycopy(getActiveContext().pointers, getSp() - argumentCount,
 				newContext.pointers, Squeak.Context_tempFrameStart - 1,
 				argumentCount + 1);
 		// ...and fill the remaining temps with nil
@@ -898,14 +907,14 @@ public class SqueakVM {
 				+ argumentCount, Squeak.Context_tempFrameStart + tempCount,
 				nilObj);
 		popN(argumentCount + 1);
-		reclaimableContextCount++;
+		setReclaimableContextCount(getReclaimableContextCount() + 1);
 		storeContextRegisters();
 		activeContext = newContext; // We're off and running...
 		// Following are more efficient than fetchContextRegisters in
 		// newActiveContext:
 		homeContext = newContext;
 		method = newMethod;
-		methodBytes = (byte[]) method.bits;
+		methodBytes = (byte[]) getMethod().bits;
 		pc = newPC;
 		sp = newSP;
 		storeContextRegisters(); // not really necessary, I claim
@@ -926,11 +935,11 @@ public class SqueakVM {
 				if (primIndex == 256)
 					return true; // return self
 				if (primIndex == 257) {
-					popNandPush(1, trueObj); // return true
+					popNandPush(1, getTrueObj()); // return true
 					return true;
 				}
 				if (primIndex == 258) {
-					popNandPush(1, falseObj); // return false
+					popNandPush(1, getFalseObj()); // return false
 					return true;
 				}
 				if (primIndex == 259) {
@@ -941,7 +950,7 @@ public class SqueakVM {
 				return true;
 			}
 		} else {
-			int spBefore = sp;
+			int spBefore = getSp();
 			boolean success = primHandler.doPrimitive(primIndex, argCount);
 			// if (success) {
 			// if (primIndex>=81 && primIndex<=88) return success; // context
@@ -976,8 +985,8 @@ public class SqueakVM {
 		// (Whoah) so we must slide args down on the stack now, so that would
 		// work
 		int trueArgCount = argCount - 1;
-		int selectorIndex = sp - trueArgCount;
-		Object[] stack = activeContext.pointers; // slide eveything down...
+		int selectorIndex = getSp() - trueArgCount;
+		Object[] stack = getActiveContext().pointers; // slide eveything down...
 		System.arraycopy(stack, selectorIndex + 1, stack, selectorIndex,
 				trueArgCount);
 		sp--; // adjust sp accordingly
@@ -998,7 +1007,7 @@ public class SqueakVM {
 		if (args.pointers == null)
 			return false;
 		int trueArgCount = args.pointers.length;
-		System.arraycopy(args.pointers, 0, activeContext.pointers, sp - 1,
+		System.arraycopy(args.pointers, 0, getActiveContext().pointers, getSp() - 1,
 				trueArgCount);
 		sp = sp - 2 + trueArgCount; // pop selector and array then push args
 		MethodCacheEntry entry = findSelectorInClass(selector, trueArgCount,
@@ -1084,7 +1093,7 @@ public class SqueakVM {
     // FIXME: remove this method
 	public SqueakObject instantiateClass(SqueakObject theClass,
 			int indexableSize) {
-		return new SqueakObject(image, theClass, indexableSize, nilObj);
+		return new SqueakObject(getImage(), theClass, indexableSize, nilObj);
 	}
     
 	public boolean clearMethodCache() {
@@ -1163,14 +1172,14 @@ public class SqueakVM {
 		System.err.println(byteCount + " rcvr= " + printString(receiver));
 		System.err.println("depth= " + stackDepth() + "; top= "
 				+ printString(top()));
-		System.err.println("pc= " + pc + "; sp= " + sp + "; nextByte= "
-				+ (((byte[]) method.bits)[pc + 1] & 0xff));
+		System.err.println("pc= " + getPc() + "; sp= " + getSp() + "; nextByte= "
+				+ (((byte[]) getMethod().bits)[getPc() + 1] & 0xff));
 		// if (byteCount==1764)
 		// byteCount= byteCount; // <-- break here
 	}
 
 	int stackDepth() {
-		SqueakObject ctxt = activeContext;
+		SqueakObject ctxt = getActiveContext();
 		int depth = 0;
 		while ((ctxt = ctxt.getPointerNI(Squeak.Context_sender)) != nilObj)
 			depth = depth + 1;
@@ -1194,7 +1203,7 @@ public class SqueakVM {
 						+ stackedSelectors[i]);
 	}
 
-	FormCache newFormCache(SqueakObject aForm) {
+	public FormCache newFormCache(SqueakObject aForm) {
 		return new FormCache(aForm);
 	}
 
@@ -1203,7 +1212,7 @@ public class SqueakVM {
 	}
 
 	public class FormCache {
-		SqueakObject squeakForm;
+		private SqueakObject squeakForm;
 		private int[] bits;
 		private int width;
 		private int height;
@@ -1237,7 +1246,7 @@ public class SqueakVM {
 
 		public boolean loadFrom(Object aForm) {
 			// We do not reload if this is the same form as before
-			if (squeakForm == aForm)
+			if (getSqueakForm() == aForm)
 				return true;
 			squeakForm = null; // Marks this as failed until very end...
 			if (isSmallInt(aForm))
@@ -1310,6 +1319,10 @@ public class SqueakVM {
 		public void setBits(int[] bits) {
 			this.bits = bits;
 		}
+
+		public SqueakObject getSqueakForm() {
+			return squeakForm;
+		}
 	}
     
 	public void wakeVM() {
@@ -1323,5 +1336,89 @@ public class SqueakVM {
 		}
 
 		screenEvent = false;
+	}
+
+	public SqueakImage getImage() {
+		return image;
+	}
+
+	public void setImage(SqueakImage image) {
+		this.image = image;
+	}
+
+	public SqueakObject getVerifyAtSelector() {
+		return verifyAtSelector;
+	}
+
+	public void setVerifyAtSelector(SqueakObject verifyAtSelector) {
+		this.verifyAtSelector = verifyAtSelector;
+	}
+
+	public SqueakObject getVerifyAtClass() {
+		return verifyAtClass;
+	}
+
+	public void setVerifyAtClass(SqueakObject verifyAtClass) {
+		this.verifyAtClass = verifyAtClass;
+	}
+
+	public SqueakObject getTrueObj() {
+		return trueObj;
+	}
+
+	public SqueakObject getFalseObj() {
+		return falseObj;
+	}
+
+	public boolean isSuccess() {
+		return success;
+	}
+
+	public void setSuccess(boolean success) {
+		this.success = success;
+	}
+
+	public int getPc() {
+		return pc;
+	}
+
+	public SqueakObject getMethod() {
+		return method;
+	}
+
+	public SqueakObject getActiveContext() {
+		return activeContext;
+	}
+
+	public int getSp() {
+		return sp;
+	}
+
+	public int getLowSpaceThreshold() {
+		return lowSpaceThreshold;
+	}
+
+	public void setLowSpaceThreshold(int lowSpaceThreshold) {
+		this.lowSpaceThreshold = lowSpaceThreshold;
+	}
+
+	public int getReclaimableContextCount() {
+		return reclaimableContextCount;
+	}
+
+	public void setReclaimableContextCount(int reclaimableContextCount) {
+		this.reclaimableContextCount = reclaimableContextCount;
+	}
+
+	public int getNextWakeupTick() {
+		return nextWakeupTick;
+	}
+
+	public void setNextWakeupTick(int nextWakeupTick) {
+		this.nextWakeupTick = nextWakeupTick;
+	}
+
+	public boolean isScreenEvent() {
+		return screenEvent;
 	}
 }

@@ -21,11 +21,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package JSqueak;
+package JSqueak.vm;
 
 import java.util.Arrays;
 import java.util.Hashtable;
 
+import JSqueak.Squeak;
 import JSqueak.image.SqueakImage;
 
 /**
@@ -190,7 +191,7 @@ public class SqueakObject //Later make variants for common formats
         return this.getPointerNI(Squeak.Class_name); 
     }
     
-    SqueakObject cloneIn(SqueakImage img) {
+    public SqueakObject cloneIn(SqueakImage img) {
         //Need to get new hash, OT entry...
         SqueakObject clone= new SqueakObject(img);
         clone.copyStateFrom(this);
@@ -214,7 +215,7 @@ public class SqueakObject //Later make variants for common formats
         return ((Double)bits).doubleValue(); 
     }
     
-    void setFloatBits(double value) {
+    public void setFloatBits(double value) {
         bits= new Double(value); 
     }
     

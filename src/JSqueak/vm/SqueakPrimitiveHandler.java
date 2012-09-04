@@ -21,7 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package JSqueak;
+package JSqueak.vm;
 
 import java.awt.Dimension;
 import java.awt.Point;
@@ -32,6 +32,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
+import JSqueak.Squeak;
 import JSqueak.display.BitBlt;
 import JSqueak.display.Screen;
 import JSqueak.image.SqueakImage;
@@ -69,7 +70,7 @@ class SqueakPrimitiveHandler
     
     SqueakPrimitiveHandler(SqueakVM theVM) {
         vm= theVM;
-        image= vm.image;
+        image= vm.getImage();
         bitbltTable= new BitBlt(vm);
         initAtCache(); 
     }
@@ -115,9 +116,9 @@ class SqueakPrimitiveHandler
         // Note that info for objectAt (includeInstVars) will have
         // a zero ivarOffset, and a size that includes the extra instVars
         AtCacheInfo info;
-        boolean cacheable= (vm.verifyAtSelector == atOrPutSelector) //is at or atPut
-            && (vm.verifyAtClass == array.getSqClass())         //not a super send
-            && (array.format==3 && vm.isContext(array));        //not a context (size can change)
+        boolean cacheable= (vm.getVerifyAtSelector() == atOrPutSelector) //is at or atPut
+            && (vm.getVerifyAtClass() == array.getSqClass())         //not a super send
+            && (array.getFormat()==3 && vm.isContext(array));        //not a context (size can change)
         if (cacheable) 
             info= atOrPutCache[array.hashCode() & atCacheMask];
         else
@@ -129,7 +130,7 @@ class SqueakPrimitiveHandler
             info.ivarOffset= 0; 
         } else {
             info.size= indexableSize(array);
-            info.ivarOffset= (array.format<6) ? array.instSize() : 0; 
+            info.ivarOffset= (array.getFormat()<6) ? array.instSize() : 0; 
         }
         return info; 
     }
@@ -348,7 +349,7 @@ class SqueakPrimitiveHandler
                           break;
                 case 109: popNandPush(1,primitiveKbdPeek()); // Sensor kbdPeek
                           break;
-                case 110: popNandPush(2,(vm.stackValue(1) == vm.stackValue(0))? vm.trueObj : vm.falseObj); // ==
+                case 110: popNandPush(2,(vm.stackValue(1) == vm.stackValue(0))? vm.getTrueObj() : vm.getFalseObj()); // ==
                           break;
                 case 112: popNandPush(1,SqueakVM.smallFromInt(image.spaceLeft())); // bytesLeft
                           break;
@@ -443,7 +444,7 @@ class SqueakPrimitiveHandler
     private void primitiveSnapshot() {
         System.out.println( "Saving the image" );
         try {
-            vm.image.save( new File( "/tmp/image.gz" ) );
+            vm.getImage().save( new File( "/tmp/image.gz" ) );
         } catch ( IOException e ) {
             e.printStackTrace();
             throw PrimitiveFailed;
@@ -459,7 +460,7 @@ class SqueakPrimitiveHandler
      */
     private Object primitiveImageFileName( int argCount ) {
         if ( argCount == 0 )
-            return makeStString( vm.image.imageFile().getAbsolutePath() );
+            return makeStString( vm.getImage().imageFile().getAbsolutePath() );
         
         if ( argCount == 1 )
             new Exception( "Cannot set the image name yet, argument is '" + stackNonInteger( 0 ) + "'" ).printStackTrace();
@@ -484,7 +485,7 @@ class SqueakPrimitiveHandler
     }
 
     private boolean pop2andDoBool(boolean bool) {
-        vm.success= true; // FIXME: Why have a side effect here? 
+        vm.setSuccess(true); // FIXME: Why have a side effect here? 
         return vm.pushBoolAndPeek(bool); 
     }
     
@@ -530,7 +531,7 @@ class SqueakPrimitiveHandler
      * If maybeFloat is a Squeak Float return its value, fail otherwise
      */
     private double checkFloat(Object maybeFloat) {
-        if (vm.getClass(maybeFloat)==vm.specialObjects[Squeak.splOb_ClassFloat])
+        if (vm.getClass(maybeFloat)==vm.getSpecialObject(Squeak.splOb_ClassFloat))
             return ((SqueakObject)maybeFloat).getFloatBits();
         
         throw PrimitiveFailed;
@@ -568,7 +569,7 @@ class SqueakPrimitiveHandler
         if (!isA(stackVal,Squeak.splOb_ClassLargePositiveInteger))
             throw PrimitiveFailed;
 
-        byte[] bytes= (byte[])((SqueakObject)stackVal).bits;
+        byte[] bytes= (byte[])((SqueakObject)stackVal).getBits();
         int value= 0;
         for(int i=0; i<4; i++)
             value= value + ((bytes[i]&255)<<(8*i));
@@ -593,9 +594,9 @@ class SqueakPrimitiveHandler
             if (smallInt != null) 
                 return smallInt; 
         }
-        SqueakObject lgIntClass= (SqueakObject)vm.specialObjects[Squeak.splOb_ClassLargePositiveInteger];
+        SqueakObject lgIntClass= (SqueakObject)vm.getSpecialObject(Squeak.splOb_ClassLargePositiveInteger);
         SqueakObject lgIntObj= vm.instantiateClass(lgIntClass,4);
-        byte[] bytes= (byte[])lgIntObj.bits;
+        byte[] bytes= (byte[])lgIntObj.getBits();
         for(int i=0; i<4; i++)
             bytes[i]= (byte) ((pos32Val>>>(8*i))&255);
         return lgIntObj; 
@@ -626,7 +627,7 @@ class SqueakPrimitiveHandler
     }
     
     SqueakObject squeakBool( boolean bool ) {
-        return bool ? vm.trueObj : vm.falseObj; 
+        return bool ? vm.getTrueObj() : vm.getFalseObj(); 
     }
     
     /**
@@ -636,7 +637,7 @@ class SqueakPrimitiveHandler
      * @return true iff object is the special Squeak true object
      */
     boolean javaBool( SqueakObject object ) {
-        return object == vm.trueObj; 
+        return object == vm.getTrueObj(); 
     }
     
     private SqueakObject primitiveAsFloat() {
@@ -654,7 +655,7 @@ class SqueakPrimitiveHandler
     }
             
     private SqueakObject makeFloat(double value) {
-        SqueakObject floatClass= (SqueakObject)vm.specialObjects[Squeak.splOb_ClassFloat];
+        SqueakObject floatClass= vm.getSpecialObject(Squeak.splOb_ClassFloat);
         SqueakObject newFloat= vm.instantiateClass(floatClass,-1);
         newFloat.setFloatBits(value);
         return newFloat; 
@@ -668,7 +669,7 @@ class SqueakPrimitiveHandler
     }
     
     private SqueakObject makePointWithXandY(Object x, Object y) {
-        SqueakObject pointClass= (SqueakObject)vm.specialObjects[Squeak.splOb_ClassPoint];
+        SqueakObject pointClass= vm.getSpecialObject(Squeak.splOb_ClassPoint);
         SqueakObject newPoint= vm.instantiateClass(pointClass,0);
         newPoint.setPointer(Squeak.Point_x,x);
         newPoint.setPointer(Squeak.Point_y,y);
@@ -699,7 +700,7 @@ class SqueakPrimitiveHandler
     // FIXME: makeStString() but squeakBool() ? Pick one!
     SqueakObject makeStString(String javaString) {
         byte[] byteString= javaString.getBytes();
-        SqueakObject stString= vm.instantiateClass((SqueakObject)vm.specialObjects[Squeak.splOb_ClassString],javaString.length());
+        SqueakObject stString= vm.instantiateClass(vm.getSpecialObject(Squeak.splOb_ClassString),javaString.length());
         System.arraycopy(byteString,0,stString.bits,0,byteString.length);
         return stString; 
     }
@@ -739,7 +740,7 @@ class SqueakPrimitiveHandler
                 
                 throw PrimitiveFailed;
             }
-            info= makeCacheInfo(atCache, vm.specialSelectors[32], array, convertChars, includeInstVars); 
+            info= makeCacheInfo(atCache, vm.getSpecialSelector(32), array, convertChars, includeInstVars); 
         }
         if (index<1 || index>info.size)
             throw PrimitiveFailed;
@@ -761,14 +762,14 @@ class SqueakPrimitiveHandler
         }
         // methods (format>=12) must simulate Squeak's method indexing
         int offset= array.pointersSize()*4;
-        if (index-1-offset < 0) //reading lits as bytes
+        if (index-1-offset < 0) //reading bits as bytes
             throw PrimitiveFailed;
         
         return SqueakVM.smallFromInt((((byte[])array.bits)[index-1-offset]) & 0xFF); 
     }
     
     SqueakObject charFromInt(int ascii) {
-        SqueakObject charTable= (SqueakObject)vm.specialObjects[Squeak.splOb_CharacterTable];
+        SqueakObject charTable= vm.getSpecialObject(Squeak.splOb_CharacterTable);
         return charTable.getPointerNI(ascii); 
     }
 
@@ -787,7 +788,7 @@ class SqueakPrimitiveHandler
                 throw PrimitiveFailed;
         } else {
             // slow entry installs in cache if appropriate
-            info= makeCacheInfo(atPutCache, vm.specialSelectors[34], array, convertChars, includeInstVars); 
+            info= makeCacheInfo(atPutCache, vm.getSpecialSelector(34), array, convertChars, includeInstVars); 
         }
         if (index<1 || index>info.size)
             throw PrimitiveFailed;
@@ -818,7 +819,7 @@ class SqueakPrimitiveHandler
                 throw PrimitiveFailed;
 
             SqueakObject sqObjToPut= (SqueakObject)objToPut;
-            if ((sqObjToPut.sqClass != vm.specialObjects[Squeak.splOb_ClassCharacter]))
+            if ((sqObjToPut.sqClass != vm.getSpecialObject(Squeak.splOb_ClassCharacter)))
                 throw PrimitiveFailed;
 
             Object asciiToPut= sqObjToPut.getPointer(0);
@@ -958,8 +959,8 @@ class SqueakPrimitiveHandler
             homeCtxt= homeCtxt.getPointerNI(Squeak.BlockContext_home);
         }
         int blockSize= homeCtxt.pointersSize() - homeCtxt.instSize(); //can use a const for instSize
-        SqueakObject newBlock= vm.instantiateClass(((SqueakObject)vm.specialObjects[Squeak.splOb_ClassBlockContext]),blockSize);
-        Integer initialPC= vm.encodeSqueakPC(vm.pc+2,vm.method); //*** check this...
+        SqueakObject newBlock= vm.instantiateClass((vm.getSpecialObject(Squeak.splOb_ClassBlockContext)),blockSize);
+        Integer initialPC= vm.encodeSqueakPC(vm.getPc()+2,vm.getMethod()); //*** check this...
         newBlock.setPointer(Squeak.BlockContext_initialIP,initialPC);
         newBlock.setPointer(Squeak.Context_instructionPointer,initialPC);// claim not needed; value will set it
         newBlock.setPointer(Squeak.Context_stackPointer,SqueakVM.smallFromInt(0));
@@ -982,11 +983,11 @@ class SqueakPrimitiveHandler
             throw PrimitiveFailed;
         if (block.getPointer(Squeak.BlockContext_caller) != vm.nilObj) 
             throw PrimitiveFailed;
-        System.arraycopy((Object)vm.activeContext.pointers,vm.sp-argCount+1,(Object)block.pointers,Squeak.Context_tempFrameStart,argCount);
+        System.arraycopy((Object)vm.getActiveContext().pointers,vm.getSp()-argCount+1,(Object)block.pointers,Squeak.Context_tempFrameStart,argCount);
         Integer initialIP= block.getPointerI(Squeak.BlockContext_initialIP);
         block.setPointer(Squeak.Context_instructionPointer,initialIP);
         block.setPointer(Squeak.Context_stackPointer,new Integer(argCount));
-        block.setPointer(Squeak.BlockContext_caller,vm.activeContext);
+        block.setPointer(Squeak.BlockContext_caller,vm.getActiveContext());
         vm.popN(argCount+1);
         vm.newActiveContext(block);
     }
@@ -1001,13 +1002,13 @@ class SqueakPrimitiveHandler
     
     private Object setLowSpaceThreshold() {
         int nBytes= stackInteger(0);
-        vm.lowSpaceThreshold= nBytes;
+        vm.setLowSpaceThreshold(nBytes);
         return vm.stackValue(1); 
     }
     
     // Scheduler Primitives
     private SqueakObject getScheduler() {
-        SqueakObject assn= (SqueakObject)vm.specialObjects[Squeak.splOb_SchedulerAssociation];
+        SqueakObject assn= vm.getSpecialObject(Squeak.splOb_SchedulerAssociation);
         return assn.getPointerNI(Squeak.Assn_value); 
     }
     
@@ -1027,12 +1028,12 @@ class SqueakPrimitiveHandler
     
     private boolean isA(Object obj, int knownClass) {
         Object itsClass= vm.getClass(obj);
-        return itsClass == vm.specialObjects[knownClass]; 
+        return itsClass == vm.getSpecialObject(knownClass); 
     }
     
     private boolean isKindOf(Object obj, int knownClass) {
         Object classOrSuper= vm.getClass(obj);
-        Object theClass= vm.specialObjects[knownClass];
+        Object theClass= vm.getSpecialObject(knownClass);
         while(classOrSuper != vm.nilObj) 
         {
             if (classOrSuper == theClass) 
@@ -1099,7 +1100,7 @@ class SqueakPrimitiveHandler
         SqueakObject sched=  getScheduler();
         SqueakObject oldProc= sched.getPointerNI(Squeak.ProcSched_activeProcess);
         sched.setPointer(Squeak.ProcSched_activeProcess,newProc);
-        oldProc.setPointer(Squeak.Proc_suspendedContext,vm.activeContext);
+        oldProc.setPointer(Squeak.Proc_suspendedContext,vm.getActiveContext());
         //int prio= vm.intFromSmall((Integer)newProc.pointers[Squeak.Proc_priority]);
         //System.err.println("Transfer to priority " + prio + " at byteCount " + vm.byteCount);
         //if (prio==8)
@@ -1107,7 +1108,7 @@ class SqueakPrimitiveHandler
         vm.newActiveContext(newProc.getPointerNI(Squeak.Proc_suspendedContext));
         //System.err.println("new pc is " + vm.pc + "; method offset= " + ((vm.method.pointers.length+1)*4));
         newProc.setPointer(Squeak.Proc_suspendedContext,vm.nilObj);
-        vm.reclaimableContextCount= 0; 
+        vm.setReclaimableContextCount(0); 
     }
     
     private SqueakObject pickTopProcess() {  // aka wakeHighestPriority 
@@ -1161,9 +1162,9 @@ class SqueakPrimitiveHandler
     private SqueakObject registerSemaphore(int specialObjSpec) {
         SqueakObject sema= (SqueakObject)vm.top();
         if (isA(sema,Squeak.splOb_ClassSemaphore))
-            vm.specialObjects[specialObjSpec]= sema;
+            vm.setSpecialObject(specialObjSpec,sema);
         else
-            vm.specialObjects[specialObjSpec]= vm.nilObj;
+            vm.setSpecialObject(specialObjSpec,vm.nilObj);
         return (SqueakObject)vm.stackValue(1); 
     }
     
@@ -1175,11 +1176,11 @@ class SqueakPrimitiveHandler
         //System.err.println("Signal at " + msTime);
         //vm.dumpStack();
         if (isA(sema,Squeak.splOb_ClassSemaphore)) {
-            vm.specialObjects[Squeak.splOb_TheTimerSemaphore]= sema;
-            vm.nextWakeupTick= msTime; 
+            vm.setSpecialObject(Squeak.splOb_TheTimerSemaphore,sema);
+            vm.setNextWakeupTick(msTime); 
         } else {
-            vm.specialObjects[Squeak.splOb_TheTimerSemaphore]= vm.nilObj;
-            vm.nextWakeupTick= 0; 
+            vm.setSpecialObject(Squeak.splOb_TheTimerSemaphore,vm.nilObj);
+            vm.setNextWakeupTick(0); 
         }
         return rcvr; 
     }  
@@ -1196,9 +1197,9 @@ class SqueakPrimitiveHandler
     
     private void beDisplay(SqueakObject displayObj) {
         SqueakVM.FormCache disp= vm.newFormCache(displayObj);
-        if (disp.squeakForm==null) 
+        if (disp.getSqueakForm()==null) 
             throw PrimitiveFailed;
-        vm.specialObjects[Squeak.splOb_TheDisplay]= displayObj;
+        vm.setSpecialObject(Squeak.splOb_TheDisplay,displayObj);
         displayBitmap= disp.getBits();
         boolean remap= theDisplay != null;
         if (remap) {
@@ -1241,7 +1242,7 @@ class SqueakPrimitiveHandler
             maskObj= stackNonInteger(0); 
         }
         SqueakVM.FormCache cursorForm= vm.newFormCache(cursorObj);
-        if ( cursorForm.squeakForm == null ) 
+        if ( cursorForm.getSqueakForm() == null ) 
             throw PrimitiveFailed;
         //Following code for offset is not yet used...
         SqueakObject offsetObj= checkNonSmallInt(cursorObj.getPointer(4)); 
@@ -1278,7 +1279,7 @@ class SqueakPrimitiveHandler
         try {
             synchronized(vm) 
             {
-                while(!vm.screenEvent) vm.wait(millis);
+                while(!vm.isScreenEvent()) vm.wait(millis);
             } 
         }
         catch(InterruptedException e) {}
@@ -1286,7 +1287,7 @@ class SqueakPrimitiveHandler
     
     private void primitiveCopyBits(SqueakObject rcvr, int argCount) {
         // no rcvr class check, to allow unknown subclasses (e.g. under Turtle)
-        if (!bitbltTable.loadBitBlt(rcvr, argCount, false, (SqueakObject)vm.specialObjects[Squeak.splOb_TheDisplay])) 
+        if (!bitbltTable.loadBitBlt(rcvr, argCount, false, (SqueakObject)vm.getSpecialObject(Squeak.splOb_TheDisplay))) 
             throw PrimitiveFailed;
         
         Rectangle affectedArea= bitbltTable.copyBits();
@@ -1324,7 +1325,7 @@ class SqueakPrimitiveHandler
     }
     
     private SqueakObject primitiveMousePoint() {
-        SqueakObject pointClass= (SqueakObject)vm.specialObjects[Squeak.splOb_ClassPoint];
+        SqueakObject pointClass= (SqueakObject)vm.getSpecialObject(Squeak.splOb_ClassPoint);
         SqueakObject newPoint= vm.instantiateClass(pointClass,0);
         Point lastMouse= theDisplay.getLastMousePoint();
         newPoint.setPointer(Squeak.Point_x,SqueakVM.smallFromInt(lastMouse.x));

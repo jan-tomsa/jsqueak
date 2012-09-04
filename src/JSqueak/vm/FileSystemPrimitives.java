@@ -1,4 +1,4 @@
-package JSqueak;
+package JSqueak.vm;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.Map;
+
 
 /**
  * The methods in this class implement the following file system primitives:

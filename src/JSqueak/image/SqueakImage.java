@@ -40,10 +40,10 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import JSqueak.Squeak;
-import JSqueak.SqueakObject;
-import JSqueak.SqueakVM;
 import JSqueak.monitor.Monitor;
 import JSqueak.util.HexUtils;
+import JSqueak.vm.SqueakObject;
+import JSqueak.vm.SqueakVM;
 
 /**
  * @author Daniel Ingalls

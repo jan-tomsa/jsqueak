@@ -65,9 +65,9 @@ import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.WindowConstants;
 
-import JSqueak.MouseStatus;
-import JSqueak.SqueakVM;
 import JSqueak.io.KeyboardQueue;
+import JSqueak.io.MouseStatus;
+import JSqueak.vm.SqueakVM;
 
 public class Screen {
     Dimension fExtent;

@@ -26,9 +26,9 @@ package JSqueak.display;
 import java.awt.Rectangle;
 
 import JSqueak.Squeak;
-import JSqueak.SqueakObject;
-import JSqueak.SqueakVM;
-import JSqueak.SqueakVM.FormCache;
+import JSqueak.vm.SqueakObject;
+import JSqueak.vm.SqueakVM;
+import JSqueak.vm.SqueakVM.FormCache;
 
 /**
  * @author Dan Ingalls
