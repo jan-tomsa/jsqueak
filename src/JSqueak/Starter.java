@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
+import JSqueak.image.SqueakImage;
 import JSqueak.monitor.Monitor;
 import JSqueak.monitor.MonitorFrame;
 

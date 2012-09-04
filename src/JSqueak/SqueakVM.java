@@ -26,6 +26,7 @@ package JSqueak;
 import java.io.FileInputStream;
 import java.util.Arrays;
 
+import JSqueak.image.SqueakImage;
 import JSqueak.monitor.Monitor;
 
 /**
@@ -39,7 +40,7 @@ public class SqueakVM {
     SqueakImage image;
     SqueakPrimitiveHandler primHandler;
     
-    SqueakObject nilObj;
+    public SqueakObject nilObj;
     SqueakObject falseObj;
     SqueakObject trueObj;
     Object[] specialObjects;
@@ -135,7 +136,7 @@ public class SqueakVM {
 		loadInitialContext();
 	}
 
-	void clearCaches() {
+	public void clearCaches() {
 		// Some time store null above SP in contexts
 		primHandler.clearAtCache();
 		clearMethodCache();
@@ -144,7 +145,7 @@ public class SqueakVM {
 	}
     
 	private void loadImageState() {
-		SqueakObject specialObjectsArray = image.specialObjectsArray;
+		SqueakObject specialObjectsArray = image.getSpecialObjectsArray();
 		specialObjects = specialObjectsArray.pointers;
 		nilObj = getSpecialObject(Squeak.splOb_NilObject);
 		falseObj = getSpecialObject(Squeak.splOb_FalseObject);
@@ -841,7 +842,7 @@ public class SqueakVM {
 		// Returns a method or nilObject
 		int dictSize = mDict.pointersSize();
 		int mask = (dictSize - Squeak.MethodDict_selectorStart) - 1;
-		int index = (mask & messageSelector.hash)
+		int index = (mask & messageSelector.getHash())
 				+ Squeak.MethodDict_selectorStart;
 		// If there are no nils(should always be), then stop looping on second
 		// wrap.
@@ -1131,7 +1132,7 @@ public class SqueakVM {
 		MethodCacheEntry entry;
 		int nProbes = 4;
 		randomish = (randomish + 1) % nProbes;
-		int firstProbe = (selector.hash ^ lkupClass.hash) & methodCacheMask;
+		int firstProbe = (selector.getHash() ^ lkupClass.getHash()) & methodCacheMask;
 		int probe = firstProbe;
 		for (int i = 0; i < 4; i++) {
 			// 4 reprobes for now
@@ -1140,7 +1141,7 @@ public class SqueakVM {
 				return entry;
 			if (i == randomish)
 				firstProbe = probe;
-			probe = (probe + selector.hash) & methodCacheMask;
+			probe = (probe + selector.getHash()) & methodCacheMask;
 		}
 		entry = methodCache[firstProbe];
 		entry.lkupClass = lkupClass;

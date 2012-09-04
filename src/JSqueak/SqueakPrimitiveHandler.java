@@ -32,6 +32,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
+import JSqueak.image.SqueakImage;
+
 /**
  * @author Daniel Ingalls
  *
@@ -361,7 +363,7 @@ class SqueakPrimitiveHandler
                           break;
                 case 128: popNandPush(2,primitiveArrayBecome(true));
                           break;
-                case 129: popNandPush(1,image.specialObjectsArray);
+                case 129: popNandPush(1,image.getSpecialObjectsArray());
                           break;
                 case 130: popNandPush(1,SqueakVM.smallFromInt(image.fullGC())); // GC
                           break;
@@ -992,7 +994,7 @@ class SqueakPrimitiveHandler
         if (SqueakVM.isSmallInt(rcvr))
             throw PrimitiveFailed;
 
-        return new Integer(((SqueakObject)rcvr).hash); 
+        return new Integer(((SqueakObject)rcvr).getHash()); 
     }
     
     private Object setLowSpaceThreshold() {

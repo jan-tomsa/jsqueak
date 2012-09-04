@@ -21,7 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package JSqueak;
+package JSqueak.image;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -39,6 +39,9 @@ import java.util.Hashtable;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import JSqueak.Squeak;
+import JSqueak.SqueakObject;
+import JSqueak.SqueakVM;
 import JSqueak.monitor.Monitor;
 import JSqueak.util.HexUtils;
 
@@ -68,7 +71,7 @@ public class SqueakImage
     private File imageFile;
     
     // FIXME: Access this through a method
-    SqueakObject specialObjectsArray;
+    private SqueakObject specialObjectsArray;
 
 	private Monitor monitor;
     
@@ -97,12 +100,12 @@ public class SqueakImage
         imageFile = fn;
     }
 
-    File imageFile()
+    public File imageFile()
     {
         return imageFile;
     }
     
-    void bindVM(SqueakVM theVM) 
+    public void bindVM(SqueakVM theVM) 
     {
         vm = theVM; 
     }
@@ -122,7 +125,7 @@ public class SqueakImage
         unbuffered.close(); 
     }
     
-    boolean bulkBecome(Object[] fromPointers, Object[] toPointers, boolean twoWay) 
+    public boolean bulkBecome(Object[] fromPointers, Object[] toPointers, boolean twoWay) 
     {
         int n= fromPointers.length;
         Object p, ptr, body[], mut;
@@ -160,10 +163,10 @@ public class SqueakImage
             if (obj != null) 
             {
                 // mutate the class
-                mut = (SqueakObject)mutations.get(obj.sqClass);
+                mut = (SqueakObject)mutations.get(obj.getSqClass());
                 if (mut != null)
-                    obj.sqClass= mut; 
-                if ((body= obj.pointers) != null)
+                    obj.setSqClass( mut ); 
+                if ((body= obj.getPointers()) != null)
                 {
                     // and mutate body pointers
                     for(int j=0; j<body.length; j++) 
@@ -180,14 +183,14 @@ public class SqueakImage
     }
 
     //Enumeration...
-    SqueakObject nextInstance(int startingIndex, SqueakObject sqClass) 
+    public SqueakObject nextInstance(int startingIndex, SqueakObject sqClass) 
     {
         //if sqClass is null, then find next object, else find next instance of sqClass
         for(int i=startingIndex; i<=otMaxUsed; i++) 
         {
             // For every object...
             SqueakObject obj= (SqueakObject)objectTable[i].get();
-            if (obj != null && (sqClass==null | obj.sqClass == sqClass)) 
+            if (obj != null && (sqClass==null | obj.getSqClass() == sqClass)) 
             {
                 lastOTindex= i; // save hint for next scan
                 return obj;
@@ -196,7 +199,7 @@ public class SqueakImage
         return vm.nilObj;  // Return nil if none found
     }
     
-    int otIndexOfObject(SqueakObject lastObj) 
+    public int otIndexOfObject(SqueakObject lastObj) 
     {
         // hint: lastObj should be at lastOTindex
         SqueakObject obj= (SqueakObject)objectTable[lastOTindex].get(); 
@@ -260,19 +263,19 @@ public class SqueakImage
         return true; 
     }
     
-    int partialGC() 
+    public int partialGC() 
     {
         System.gc();
         otMaxUsed=reclaimNullOTSlots(otMaxOld);
         return spaceLeft(); 
     }
 
-    int spaceLeft() 
+    public int spaceLeft() 
     {
         return (int)Math.min(Runtime.getRuntime().freeMemory(),(long)SqueakVM.maxSmallInt); 
     }
 
-    int fullGC() 
+    public int fullGC() 
     {
         vm.clearCaches();
         for(int i=0; i<5; i++) partialGC();
@@ -383,16 +386,16 @@ public class SqueakImage
         }
         
         //Temp version of spl objs needed for makeCCArray; not a good object yet
-        specialObjectsArray= (SqueakObject)(oopMap.get(new Integer(specialObjectsOopInt)));
-        Integer[] ccArray= makeCCArray(oopMap,specialObjectsArray);
-        int oldOop= specialObjectsArray.oldOopAt(Squeak.splOb_ClassFloat);
+        setSpecialObjectsArray((SqueakObject)(oopMap.get(new Integer(specialObjectsOopInt))));
+        Integer[] ccArray= makeCCArray(oopMap,getSpecialObjectsArray());
+        int oldOop= getSpecialObjectsArray().oldOopAt(Squeak.splOb_ClassFloat);
         SqueakObject floatClass= ((SqueakObject) oopMap.get(new Integer(oldOop)));
         System.out.println("Start installs at " + System.currentTimeMillis());
         monitor.logMessage("Start installs at " + System.currentTimeMillis());
         for (int i= 0; i<otMaxUsed; i++) 
         {
         	SqueakObject squeakObject = (SqueakObject) objectTable[i].get();
-        	monitor.logMessage("Installing: "+squeakObject.hash);
+        	monitor.logMessage("Installing: "+squeakObject.getHash());
             // Don't need oldBaseAddr here**
         	squeakObject.install(oopMap,ccArray,floatClass); 
             //((SqueakObject) objectTable[i].get()).install(oopMap,ccArray,floatClass);
@@ -401,7 +404,7 @@ public class SqueakImage
         System.out.println("Done installing at " + System.currentTimeMillis());
         monitor.logMessage("Done installing at " + System.currentTimeMillis());
         //Proper version of spl objs -- it's a good object
-        specialObjectsArray= (SqueakObject)(oopMap.get(new Integer(specialObjectsOopInt)));
+        setSpecialObjectsArray((SqueakObject)(oopMap.get(new Integer(specialObjectsOopInt))));
         otMaxOld= otMaxUsed; 
     }
     
@@ -440,4 +443,12 @@ public class SqueakImage
         }
         return ccArray; 
     }
+
+	public SqueakObject getSpecialObjectsArray() {
+		return specialObjectsArray;
+	}
+
+	public void setSpecialObjectsArray(SqueakObject specialObjectsArray) {
+		this.specialObjectsArray = specialObjectsArray;
+	}
 }
