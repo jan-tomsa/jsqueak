@@ -332,10 +332,10 @@ public class SqueakVM {
         return methodBytes[++pc] & 0xff; 
     }
     
-    public void run(Monitor monitor) throws java.io.IOException {
+    public void run() throws java.io.IOException {
     	long masterCounter = 0;  
     	long counter = MAX_COUNTER;
-    	monitor.logMessage("Look ma, I'm running!");
+    	monitor.logMessage("Entered the main RUN LOOP");
 	    int b, b2;
         while(true) {
             //...Here's the basic evaluator loop...'
@@ -346,7 +346,7 @@ public class SqueakVM {
         	if (counter < 0) {
         		counter = MAX_COUNTER;
         		masterCounter++;
-        		monitor.logMessage( Long.toString(masterCounter) );
+        		monitor.setStatus( Long.toString(masterCounter) );
         	}
         	b= methodBytes[++pc] & 0xff;
             switch (b) { /* The Main Bytecode Dispatch Loop */ 

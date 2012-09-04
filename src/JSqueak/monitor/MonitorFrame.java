@@ -5,20 +5,24 @@ import java.awt.GraphicsConfiguration;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.HeadlessException;
+import java.awt.event.ActionEvent;
 
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
 public class MonitorFrame extends JFrame implements Monitor {
-	JLabel jlbCurrentMessage = null;
-	JTextArea jtAreaOutput;
+	JLabel lbStatus;
+	JTextArea taLog;
+	JButton btDoSomething;
 
 	public MonitorFrame() throws HeadlessException {
-		jlbCurrentMessage = new JLabel("--current message--");
-		jtAreaOutput = new JTextArea(35, 30);
-		JScrollPane scrollPane = new JScrollPane(jtAreaOutput,
+		lbStatus = new JLabel("--current status--");
+		taLog = new JTextArea(35, 30);
+		btDoSomething = new JButton("Do something...");
+		JScrollPane scrollPane = new JScrollPane(taLog,
 				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		GridBagLayout gridBag = new GridBagLayout();
@@ -27,7 +31,8 @@ public class MonitorFrame extends JFrame implements Monitor {
 		GridBagConstraints gridCons1 = new GridBagConstraints();
 		gridCons1.gridwidth = GridBagConstraints.REMAINDER;
 		gridCons1.fill = GridBagConstraints.HORIZONTAL;
-		contentPane.add(jlbCurrentMessage, gridCons1);
+		contentPane.add(btDoSomething, gridCons1);
+		contentPane.add(lbStatus, gridCons1);
 		GridBagConstraints gridCons2 = new GridBagConstraints();
 		gridCons2.weightx = 1.0;
 		gridCons2.weighty = 1.0;
@@ -35,8 +40,17 @@ public class MonitorFrame extends JFrame implements Monitor {
 		this.setSize(380, 650);
 		pack();
 		setVisible(true);
+		btDoSomething.setActionCommand("do_something");
+		//btDoSomething.addActionListener(this);
 	}
 
+	public void actionPerformed(ActionEvent e) {
+	    if ("do_something".equals(e.getActionCommand())) {
+	        this.logMessage("Oops! I did it.");
+	    }
+	} 
+
+	
 	public MonitorFrame(GraphicsConfiguration gc) {
 		super(gc);
 	}
@@ -51,8 +65,12 @@ public class MonitorFrame extends JFrame implements Monitor {
 
 	@Override
 	public void logMessage(String message) {
-		jlbCurrentMessage.setText(message);
-		jtAreaOutput.append(message+"\n");
+		taLog.append(message+"\n");
+	}
+
+	@Override
+	public void setStatus(String status) {
+		lbStatus.setText(status);
 	}
 
 }

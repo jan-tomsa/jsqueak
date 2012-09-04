@@ -38,28 +38,19 @@ public class Starter {
     private static final String MINI_IMAGE_FILE_NAME = "mini.image.gz";
     private static Monitor monitor = null;
     
-    /**
-     * Locate a startable image as a resource.
-     */
-    private static SqueakImage locateStartableImage() throws IOException {
-        //File saved= new File( pathname );
-        //if (saved.exists()) return new SqueakImage(saved);
-        // and only if no image name was given
+    private static SqueakImage locateStartableImageAndLoadIt() throws IOException {
         URL imageUrl = Starter.class.getResource( MINI_IMAGE_FILE_NAME );
         if ( "file".equals( imageUrl.getProtocol() ) )
             return new SqueakImage( new File( imageUrl.getPath() ), monitor );
             
         InputStream ims = Starter.class.getResourceAsStream( MINI_IMAGE_FILE_NAME );
         if ( ims != null )
-            return new SqueakImage(ims);
+            return new SqueakImage(ims, monitor);
         
         throw new FileNotFoundException( "Cannot locate resource " + MINI_IMAGE_FILE_NAME );
     }
 
-    /**
-     * Locate a startable image at a specified path.
-     */
-    private static SqueakImage locateSavedImage( String pathname ) throws IOException {
+    private static SqueakImage locateSavedImageAndLoadIt( String pathname ) throws IOException {
         File saved = new File( pathname );
         if ( saved.exists() )
             return new SqueakImage( saved, monitor );
@@ -73,21 +64,11 @@ public class Starter {
     public static void main(String[] args) throws IOException, NullPointerException, java.lang.ArrayIndexOutOfBoundsException {
         monitor = new MonitorFrame();
         SqueakVM.initSmallIntegerCache();
-        SqueakImage img = args.length > 0 ? locateSavedImage( args[0] )
-                                          : locateStartableImage();
+        SqueakImage img = args.length > 0 ? locateSavedImageAndLoadIt( args[0] )
+                                          : locateStartableImageAndLoadIt();
         //monitorFrame.logMessage(MINI_IMAGE_FILE_NAME);
         SqueakVM vm= new SqueakVM(img,monitor);
-        vm.run(monitor); 
+        vm.run(); 
     }
 
-    //Simulation sim= new Simulation(vm);
-    //sim.run();
-    //if (sim.getState() == Executable.CANCELLED) {
-    //    Throwable t= (Throwable)sim.getReturnValue();
-    //    t.printStackTrace(System.err);
-    //}
-    //SqueakVM vm= locateStartableImage(args);
-    //if (vm != null) {
-    //vm.shutdown();
-    //}
 }

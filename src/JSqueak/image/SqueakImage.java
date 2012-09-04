@@ -75,18 +75,19 @@ public class SqueakImage
 
 	private Monitor monitor;
     
-    public SqueakImage(InputStream raw) throws IOException 
+    public SqueakImage(InputStream raw, Monitor monitor ) throws IOException 
     {
+    	this.monitor = monitor;
         imageFile = new File( System.getProperty( "user.dir" ),
                               DEFAULT_IMAGE_NAME );
-        loaded(raw); 
+        loadImage(raw); 
     }
     
     public SqueakImage( File fn, Monitor monitor ) throws IOException 
     {
     	this.monitor = monitor;
         imageFile = fn;
-        loaded(fn); 
+        loadImage(fn); 
     }
     
     public void save(File fn) throws IOException 
@@ -110,18 +111,18 @@ public class SqueakImage
         vm = theVM; 
     }
     
-    private void loaded(InputStream raw) throws IOException 
+    private void loadImage(InputStream raw) throws IOException 
     {
-        BufferedInputStream fp= new BufferedInputStream(raw);
-        GZIPInputStream gz= new GZIPInputStream(fp);
+        BufferedInputStream inputStream= new BufferedInputStream(raw);
+        GZIPInputStream gz= new GZIPInputStream(inputStream);
         DataInputStream ser= new DataInputStream(gz);
         readImage(ser); 
     }
 
-    private void loaded(File fn) throws IOException 
+    private void loadImage(File fn) throws IOException 
     {
         FileInputStream unbuffered= new FileInputStream(fn);
-        loaded(unbuffered);
+        loadImage(unbuffered);
         unbuffered.close(); 
     }
     
