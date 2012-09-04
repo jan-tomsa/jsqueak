@@ -1312,7 +1312,7 @@ public class SqueakVM {
 		}
 	}
     
-	void wakeVM() {
+	public void wakeVM() {
 		screenEvent = true;
 		synchronized (this) {
 			notify();

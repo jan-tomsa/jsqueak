@@ -1,9 +1,11 @@
-package JSqueak;
+package JSqueak.io;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.ArrayList;
 import java.util.List;
+
+import JSqueak.SqueakVM;
 
 /**
  * I'm JSqueak's keyboard driver.  I convert Java KeyEvents into Squeak
