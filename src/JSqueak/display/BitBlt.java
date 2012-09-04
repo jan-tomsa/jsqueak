@@ -138,12 +138,9 @@ public class BitBlt
             return false;
         if (!success) 
             return false;
-        if (noSource) 
-        {
+        if (noSource) {
             sourceX = sourceY = 0;
-        }
-        else 
-        {
+        } else {
             if (!source.loadFrom(sourceForm)) 
                 return false;
             if (!loadColorMap()) 
@@ -158,8 +155,7 @@ public class BitBlt
             return false;
         if (!success) 
             return false;
-        if (getCombinationRule() == 30 || getCombinationRule() == 31) 
-        {
+        if (getCombinationRule() == 30 || getCombinationRule() == 31) {
             if (argCount != 1) 
                 return false; // alpha arg is required
             sourceAlpha = checkIntValue(vm.top());
@@ -169,28 +165,23 @@ public class BitBlt
                 vm.pop(); 
         }
         // Intersect incoming clipRect with destForm bounds
-        if (clipX < 0) 
-        {
+        if (clipX < 0) {
             clipWidth += clipX; clipX = 0; 
         }
-        if (clipY < 0) 
-        {
+        if (clipY < 0) {
             clipHeight += clipY; clipY = 0; 
         }
-        if ((clipX + clipWidth) > getDest().getWidth()) 
-        {
+        if ((clipX + clipWidth) > getDest().getWidth()) {
             clipWidth = getDest().getWidth() - clipX; 
         }
-        if ((clipY + clipHeight) > getDest().getHeight()) 
-        {
+        if ((clipY + clipHeight) > getDest().getHeight()) {
             clipHeight = getDest().getHeight() - clipY; 
         }
         destIsDisplay= destForm == displayForm;
         return true; 
     }
     
-    boolean ignoreSourceOrHalftone(Object formPointer) 
-    {
+    boolean ignoreSourceOrHalftone(Object formPointer) {
         if (formPointer == vm.nilObj) 
             return true;
         if (getCombinationRule() == 0) 
@@ -204,44 +195,38 @@ public class BitBlt
         return false; 
     }
  
-    int checkIntValue(Object obj) 
-    {
+    int checkIntValue(Object obj) {
         if (SqueakVM.isSmallInt(obj))
 			return SqueakVM.intFromSmall(((Integer)obj));
         success= false; 
         return 0; 
     }
     
-    int checkIntOrFloatIfNil(Object intOrFloatObj, int valueIfNil) 
-    {
+    int checkIntOrFloatIfNil(Object intOrFloatObj, int valueIfNil) {
         double floatValue;
         if (SqueakVM.isSmallInt(intOrFloatObj))
 			return SqueakVM.intFromSmall(((Integer)intOrFloatObj));
         if (intOrFloatObj == vm.nilObj) 
             return valueIfNil;
         SqueakObject floatObj= (SqueakObject) intOrFloatObj;
-        if (floatObj.getSqClass()!=vm.getSpecialObject(Squeak.splOb_ClassFloat)) 
-        {
+        if (floatObj.getSqClass()!=vm.getSpecialObject(Squeak.splOb_ClassFloat)) {
             success= false;
             return 0;
         }
         floatValue = floatObj.getFloatBits();
-        if (!((-2.147483648e9 <= floatValue) && (floatValue <= 2.147483647e9))) 
-        {
+        if (!((-2.147483648e9 <= floatValue) && (floatValue <= 2.147483647e9))) {
             success= false; 
             return 0;
         }
         return ((int) floatValue); 
     }
     
-    boolean loadBBHalftoneForm(Object aForm) // Not done yet!! 
-    { 
+    boolean loadBBHalftoneForm(Object aForm) { // Not done yet!! 
         if (noHalftone) 
             return true;
         if (SqueakVM.isSmallInt(aForm)) 
             return false;
-        if (((SqueakObject)aForm).getFormat()<6) 
-        {
+        if (((SqueakObject)aForm).getFormat()<6) {
             //Old-style 32xN monochrome halftone Forms
             Object[] formPointers = ((SqueakObject)aForm).getPointers();
             if (formPointers == null || formPointers.length<4)  
@@ -253,9 +238,7 @@ public class BitBlt
                 return false;
             if (!success || (halftoneHeight < 1)) 
                 return false; 
-        }
-        else
-        {
+        } else {
             //New spec accepts, basically, a word array
             if (((SqueakObject) aForm).getFormat() != 6)
                 return false;
@@ -267,8 +250,7 @@ public class BitBlt
         return true;
     }
     
-    boolean loadBBDestRect(Object[] bbPointers) 
-    {
+    boolean loadBBDestRect(Object[] bbPointers) {
         destX = checkIntOrFloatIfNil(bbPointers[4], 0);
         destY = checkIntOrFloatIfNil(bbPointers[5], 0);
         width = checkIntOrFloatIfNil(bbPointers[6], getDest().getWidth());
@@ -276,8 +258,7 @@ public class BitBlt
         return success;
     }
 
-    boolean loadBBClipRect(Object[] bbPointers) 
-    {
+    boolean loadBBClipRect(Object[] bbPointers) {
         clipX = checkIntOrFloatIfNil(bbPointers[10], 0);
         clipY = checkIntOrFloatIfNil(bbPointers[11], 0);
         clipWidth = checkIntOrFloatIfNil(bbPointers[12], getDest().getWidth());
@@ -285,89 +266,75 @@ public class BitBlt
         return success; 
     }
     
-    boolean loadColorMap() 
-    {
+    boolean loadColorMap() {
         // Not yet implemented
         return true; 
     } 
     
-    boolean setUpColorMasks()
-    {
+    boolean setUpColorMasks() {
         // Not yet implemented
         return true; 
     } 
     
-    void clipRange() 
-    {
-        if (destX >= clipX) 
-        {
+    void clipRange() {
+        if (destX >= clipX) {
             sx = sourceX;
             dx = destX;
             bbW = width; 
-        } 
-        else 
-        {
+        } else {
             sx = sourceX + (clipX - destX);
             bbW = width - (clipX - destX);
             dx = clipX; 
         }
-        if ((dx + bbW) > (clipX + clipWidth))
+        if ((dx + bbW) > (clipX + clipWidth)) {
             bbW -= (dx + bbW) - (clipX + clipWidth);
-        if (destY >= clipY) 
-        {
+        }
+        if (destY >= clipY) {
             sy = sourceY;
             dy = destY;
             bbH = height; 
-        }
-        else 
-        {
+        } else {
             sy = (sourceY + clipY) - destY;
             bbH = height - (clipY - destY);
             dy = clipY; 
         }
-        if ((dy + bbH) > (clipY + clipHeight))
+        if ((dy + bbH) > (clipY + clipHeight)) {
             bbH -= (dy + bbH) - (clipY + clipHeight);
+        }
         if (noSource) 
             return;
-        if (sx < 0) 
-        {
+        if (sx < 0) {
             dx -= sx;
             bbW += sx;
             sx = 0; 
         }
-        if ((sx + bbW) > source.getWidth())
+        if ((sx + bbW) > source.getWidth()) {
             bbW -= (sx + bbW) - source.getWidth();
-        if (sy < 0) 
-        {
+        }
+        if (sy < 0) {
             dy -= sy;
             bbH += sy;
             sy = 0; 
         }
-        if ((sy + bbH) > source.getHeight())
-            bbH -= (sy + bbH) - source.getHeight(); 
+        if ((sy + bbH) > source.getHeight()) {
+            bbH -= (sy + bbH) - source.getHeight();
+        }
     }
     
-    public Rectangle copyBits() 
-    {
+    public Rectangle copyBits() {
         // combines copyBits, copybitsLockedAndClipped, and performcopyLoop
         clipRange();
         if (bbW <= 0 || bbH <= 0) return null;
         destMaskAndPointerInit();
         setBitCount(0);
         /* Choose and perform the actual copy loop. */
-        if (noSource) 
-        {
+        if (noSource) {
             copyLoopNoSource();
-        }
-        else 
-        {
+        } else {
             checkSourceOverlap();
-            if ((source.getDepth() != getDest().getDepth()) || ((cmFlags != 0) || (source.isMsb() != getDest().isMsb()))) 
-            {
+            if ((source.getDepth() != getDest().getDepth()) || ((cmFlags != 0) || (source.isMsb() != getDest().isMsb()))) {
                 copyLoopPixMap(); 
-            }
-            else
-            {
+            } else {
                 sourceSkewAndPointerInit();
                 copyLoop(); 
             }
@@ -376,31 +343,24 @@ public class BitBlt
             return null;
         if ((getCombinationRule() == 22) || (getCombinationRule() == 32)) 
             return null;
-        if (hDir > 0) 
-        {
+        if (hDir > 0) {
             affectedL = dx;
             affectedR = dx + bbW; 
-        }
-        else 
-        {
+        } else {
             affectedL = (dx - bbW) + 1;
             affectedR = dx + 1; 
         }
-        if (vDir > 0) 
-        {
+        if (vDir > 0) {
             affectedT = dy;
             affectedB = dy + bbH; 
-        }
-        else 
-        {
+        } else {
             affectedT = (dy - bbH) + 1;
             affectedB = dy + 1; 
         }
         return new Rectangle(affectedL, affectedT, affectedR-affectedL, affectedB-affectedT); 
     }
     
-    void destMaskAndPointerInit() 
-    {
+    void destMaskAndPointerInit() {
         int pixPerM1;
         int endBits;
         int startBits;
@@ -411,15 +371,12 @@ public class BitBlt
         endBits = (((dx + bbW) - 1) & pixPerM1) + 1;
         mask2 = getDest().isMsb() ? AllOnes << (32 - (endBits * getDest().getDepth()))
                          : AllOnes >>> (32 - (endBits * getDest().getDepth()));
-        if (bbW < startBits) 
-        { 
+        if (bbW < startBits) { 
             //start and end in same word, so merge masks
             mask1 = mask1 & mask2;
             mask2 = 0;
             nWords = 1; 
-        }
-        else 
-        {
+        } else {
             nWords = (((bbW - startBits) + pixPerM1) / getDest().getPixPerWord()) + 1;
         }
         hDir = vDir = 1; //defaults for no overlap with source
@@ -427,26 +384,19 @@ public class BitBlt
         destDelta = (getDest().getPitch() * vDir) - (nWords * hDir); 
     }
     
-    void checkSourceOverlap()
-    {
+    void checkSourceOverlap() {
         int t;
-        if ((sourceForm == destForm) && (dy >= sy)) 
-        {
-            if (dy > sy) 
-            {
+        if ((sourceForm == destForm) && (dy >= sy)) {
+            if (dy > sy) {
                 vDir = -1;
                 sy = (sy + bbH) - 1;
                 dy = (dy + bbH) - 1; 
-            }
-            else 
-            {
-                if ((dy == sy) && (dx > sx)) 
-                {
+            } else {
+                if ((dy == sy) && (dx > sx)) {
                     hDir = -1;
                     sx = (sx + bbW) - 1; //start at right
                     dx = (dx + bbW) - 1;
-                    if (nWords > 1) 
-                    {
+                    if (nWords > 1) {
                         t = mask1; //and fix up masks
                         mask1 = mask2;
                         mask2 = t; 
@@ -458,8 +408,7 @@ public class BitBlt
         }
     }
     
-    void sourceSkewAndPointerInit() 
-    {
+    void sourceSkewAndPointerInit() {
         int pixPerM1;
         int dxLowBits;
         int dWid;
@@ -469,20 +418,16 @@ public class BitBlt
         dxLowBits = dx & pixPerM1;
         // check if need to preload buffer
         // (i.e., two words of source needed for first word of destination)
-        if (hDir > 0) 
-        {
+        if (hDir > 0) {
             dWid = ((bbW < (getDest().getPixPerWord() - dxLowBits)) ? bbW : (getDest().getPixPerWord() - dxLowBits));
             preload = (sxLowBits + dWid) > pixPerM1; 
-        }
-        else
-        {
+        } else {
             dWid = ((bbW < (dxLowBits + 1)) ? bbW : (dxLowBits + 1));
             preload = ((sxLowBits - dWid) + 1) < 0; 
         }
         skew = (source.isMsb()) ? (sxLowBits - dxLowBits) * getDest().getDepth()
                             :(dxLowBits - sxLowBits) * getDest().getDepth();
-        if (preload) 
-        {
+        if (preload) {
             if (skew < 0) 
                 skew += 32;
             else 
@@ -495,28 +440,23 @@ public class BitBlt
             sourceDelta -= hDir; 
     }
     
-    int halftoneAt(int index) 
-    {
+    int halftoneAt(int index) {
         return halftoneBits[SqueakVM.mod(index,halftoneHeight)]; 
     }
     
-    int srcLongAt(int index)
-    {
+    int srcLongAt(int index) {
         return source.getBits()[index]; 
     }
     
-    int dstLongAt(int index)
-    {
+    int dstLongAt(int index) {
         return getDest().getBits()[index]; 
     }
     
-    void dstLongAtput(int index, int intToPut)
-    {
+    void dstLongAtput(int index, int intToPut) {
         getDest().getBits()[index]= intToPut; 
     }
     
-    void copyLoopNoSource() 
-    {
+    void copyLoopNoSource() {
         //  Faster copyLoop when source not used.  hDir and vDir are both
         //  positive, and perload and skew are unused
         int mergeWord;
@@ -526,8 +466,7 @@ public class BitBlt
         int destWord;
         
         halftoneWord = AllOnes;
-        for (i = 1; i <= bbH; i += 1) 
-        { 
+        for (i = 1; i <= bbH; i += 1) { 
             // vertical loop
             if (!noHalftone) 
                 halftoneWord = halftoneAt((dy + i) - 1);
@@ -539,28 +478,22 @@ public class BitBlt
             destIndex ++;
             destMask = AllOnes;
             //The central horizontal loop requires no store masking */
-            if (getCombinationRule() == 3) 
-            {
+            if (getCombinationRule() == 3) {
                 destWord = halftoneWord;
                 // Store rule requires no dest merging
-                for (word = 2; word <= (nWords - 1); word += 1) 
-                {
+                for (word = 2; word <= (nWords - 1); word += 1) {
                     dstLongAtput(destIndex, destWord);
                     destIndex ++; 
                 }
-            }
-            else 
-            {
-                for (word = 2; word <= (nWords - 1); word += 1) 
-                {
+            } else {
+                for (word = 2; word <= (nWords - 1); word += 1) {
                     destWord = dstLongAt(destIndex);
                     mergeWord = mergeFnwith(halftoneWord, destWord);
                     dstLongAtput(destIndex, mergeWord);
                     destIndex ++; 
                 }
             }
-            if (nWords > 1) 
-            {
+            if (nWords > 1) {
                 //last word in row is masked
                 destMask = mask2;
                 destWord = dstLongAt(destIndex);
@@ -573,8 +506,7 @@ public class BitBlt
         }
     }
     
-    void copyLoop() 
-    {
+    void copyLoop() {
         //This version of the inner loop assumes noSource = false.
         int mergeWord;
         int skewMask;
@@ -591,56 +523,39 @@ public class BitBlt
         int thisWord;
         int sourceLimit= source.getBits().length;
         hInc = hDir;
-        if (skew == -32) 
-        {
+        if (skew == -32) {
             skew = unskew = skewMask = 0; 
-        }
-        else 
-        {
-            if (skew < 0) 
-            {
+        } else {
+            if (skew < 0) {
                 unskew = skew + 32;
                 skewMask = AllOnes << (0 - skew); 
-            }
-            else 
-            {
-                if (skew == 0) 
-                {
+            } else {
+                if (skew == 0) {
                     unskew = 0;
                     skewMask = AllOnes; 
-                }
-                else 
-                {
+                } else {
                     unskew = skew - 32;
                     skewMask = ( AllOnes) >>> skew; 
                 }
             }
         }
         notSkewMask = ~skewMask;
-        if (noHalftone) 
-        {
+        if (noHalftone) {
             halftoneWord = AllOnes;
             halftoneHeight = 0; 
-        }
-        else 
-        {
+        } else {
             halftoneWord = halftoneAt(0); 
         }
         y = dy;
-        for (i = 1; i <= bbH; i += 1) 
-        {
-            if (halftoneHeight > 1) 
-            {
+        for (i = 1; i <= bbH; i += 1) {
+            if (halftoneHeight > 1) {
                 halftoneWord = halftoneAt(y);
                 y += vDir; 
             }
-            if (preload) 
-            {
+            if (preload) {
                 prevWord = srcLongAt(sourceIndex);
                 sourceIndex += hInc; 
-            }
-            else 
-            {
+            } else {
                 prevWord = 0; 
             }
             destMask = mask1;
@@ -657,38 +572,28 @@ public class BitBlt
             //The central horizontal loop requires no store masking */
             destIndex += hInc;
             destMask = AllOnes;
-            if (getCombinationRule() == 3) 
-            {
+            if (getCombinationRule() == 3) {
                 //Store mode avoids dest merge function
-                if ((skew == 0) && (halftoneWord == AllOnes)) 
-                {
+                if ((skew == 0) && (halftoneWord == AllOnes)) {
                     //Non-skewed with no halftone
-                    if (hDir == -1) 
-                    {
-                        for (word = 2; word <= (nWords - 1); word += 1) 
-                        {
+                    if (hDir == -1) {
+                        for (word = 2; word <= (nWords - 1); word += 1) {
                             thisWord = srcLongAt(sourceIndex);
                             sourceIndex += hInc;
                             dstLongAtput(destIndex, thisWord);
                             destIndex += hInc;
                         }
-                    }
-                    else 
-                    {
-                        for (word = 2; word <= (nWords - 1); word += 1) 
-                        {
+                    } else {
+                        for (word = 2; word <= (nWords - 1); word += 1) {
                             dstLongAtput(destIndex, prevWord);
                             destIndex += hInc;
                             prevWord = srcLongAt(sourceIndex);
                             sourceIndex += hInc; 
                         }
                     }
-                }
-                else 
-                {
+                } else {
                     //skewed and/or halftoned
-                    for (word = 2; word <= (nWords - 1); word += 1) 
-                    {
+                    for (word = 2; word <= (nWords - 1); word += 1) {
                         thisWord = srcLongAt(sourceIndex);
                         sourceIndex += hInc;
                         /* 32-bit rotate */
@@ -698,12 +603,9 @@ public class BitBlt
                         destIndex += hInc; 
                     }
                 }
-            }
-            else 
-            {
+            } else {
                 //Dest merging here...
-                for (word = 2; word <= (nWords - 1); word += 1) 
-                {
+                for (word = 2; word <= (nWords - 1); word += 1) {
                     thisWord = srcLongAt(sourceIndex); //pick up next word
                     sourceIndex += hInc;
                     /* 32-bit rotate */
@@ -714,12 +616,10 @@ public class BitBlt
                     destIndex += hInc; 
                 }
             }
-            if (nWords > 1) 
-            {
+            if (nWords > 1) {
                 // last word with masking and all
                 destMask = mask2;
-                if (sourceIndex>=0 && sourceIndex<sourceLimit)
-                {
+                if (sourceIndex>=0 && sourceIndex<sourceLimit) {
                     //NOTE: we are currently overrunning source bits in some cases
                     //this test makes up for it.
                     thisWord = srcLongAt(sourceIndex); //pick up next word
@@ -787,19 +687,16 @@ public class BitBlt
         srcShiftInc = source.getDepth();
         dstShiftInc = getDest().getDepth();
         dstShiftLeft = 0;
-        if (source.isMsb()) 
-        {
+        if (source.isMsb()) {
             srcShift = (32 - source.getDepth()) - srcShift;
             srcShiftInc = 0 - srcShiftInc; 
         }
-        if (getDest().isMsb()) 
-        {
+        if (getDest().isMsb()) {
             dstShift = (32 - getDest().getDepth()) - dstShift;
             dstShiftInc = 0 - dstShiftInc;
             dstShiftLeft = 32 - getDest().getDepth(); 
         }
-        for (i = 1; i <= bbH; i += 1) 
-        {
+        for (i = 1; i <= bbH; i += 1) {
             halftoneWord = (noHalftone) ? AllOnes : halftoneAt((dy + i) - 1);
             srcBitShift = srcShift;
             dstBitShift = dstShift;
@@ -807,31 +704,24 @@ public class BitBlt
             nPix = startBits;
             words = nWords;
             /* Here is the horizontal loop... */
-            do 
-            {
+            do {
                 /* align next word to leftmost pixel */
                 skewWord = pickSourcePixelsflagssrcMaskdestMasksrcShiftIncdstShiftInc(nPix, mapperFlags, sourcePixMask, destPixMask, srcShiftInc, dstShiftInc);
                 dstBitShift = dstShiftLeft;
-                if (destMask == AllOnes) 
-                {
+                if (destMask == AllOnes) {
                     mergeWord = mergeFnwith(skewWord & halftoneWord, dstLongAt(destIndex));
                     dstLongAtput(destIndex, destMask & mergeWord);
-                }
-                else 
-                {
+                } else {
                     destWord = dstLongAt(destIndex);
                     mergeWord = mergeFnwith(skewWord & halftoneWord, destWord & destMask);
                     destWord = (destMask & mergeWord) | (destWord & (~destMask));
                     dstLongAtput(destIndex, destWord); 
                 }
                 destIndex ++;
-                if (words == 2) 
-                {
+                if (words == 2) {
                     destMask = mask2;
                     nPix = endBits; 
-                }
-                else 
-                {
+                } else {
                     destMask = AllOnes;
                     nPix = getDest().getPixPerWord(); 
                 }
@@ -844,8 +734,7 @@ public class BitBlt
     //    int pickSourcePixelsflagssrcMaskdestMasksrcShiftIncdstShiftInc(int nPix, int mapperFlags, int sourcePixMask, int destPixMask, int srcShiftInc, int dstShiftInc) {
     //                return 0; }  //dummy stub for now
     
-    int pickSourcePixelsflagssrcMaskdestMasksrcShiftIncdstShiftInc(int nPixels, int mapperFlags, int srcMask, int dstMask, int srcShiftInc, int dstShiftInc) 
-    {
+    int pickSourcePixelsflagssrcMaskdestMasksrcShiftIncdstShiftInc(int nPixels, int mapperFlags, int srcMask, int dstMask, int srcShiftInc, int dstShiftInc)  {
         /*  Pick nPix pixels starting at srcBitIndex from the source, map by the
             color map, and justify them according to dstBitIndex in the resulting destWord. */
         int sourcePix;
@@ -861,47 +750,35 @@ public class BitBlt
         dstShift = dstBitShift;
         nPix = nPixels;
         /* always > 0 so we can use do { } while(--nPix); */
-        if (mapperFlags == (1 | 4)) 
-        {
-            do 
-            {
+        if (mapperFlags == (1 | 4)) {
+            do {
                 sourcePix = (sourceWord >>> srcShift) & srcMask;
                 destPix = cmLookupTable[sourcePix & cmMask];
                 /* adjust dest pix index */
                 destWord = destWord | ((destPix & dstMask) << dstShift);
                 /* adjust source pix index */
                 dstShift += dstShiftInc;
-                if (!(((srcShift += srcShiftInc) & AllOnes) == 0)) 
-                {
-                    if (source.isMsb()) 
-                    {
+                if (!(((srcShift += srcShiftInc) & AllOnes) == 0)) {
+                    if (source.isMsb()) {
                         srcShift += 32; 
-                    }
-                    else 
-                    {
+                    } else {
                         srcShift -= 32; 
                     }
                     sourceWord = srcLongAt(sourceIndex += 4); 
                 }
             } while(!((nPix -= 1) == 0)); } /*clean double-neg here*/
-        else 
-        {
-            do 
-            {
+        else {
+            do {
                 sourcePix = (sourceWord >>> srcShift) & srcMask;
                 destPix = mapPixelflags(sourcePix, mapperFlags);
                 /* adjust dest pix index */
                 destWord = destWord | ((destPix & dstMask) << dstShift);
                 /* adjust source pix index */
                 dstShift += dstShiftInc;
-                if (!(((srcShift += srcShiftInc) & AllOnes) == 0)) 
-                {
-                    if (source.isMsb()) 
-                    {
+                if (!(((srcShift += srcShiftInc) & AllOnes) == 0)) {
+                    if (source.isMsb()) {
                         srcShift += 32; 
-                    }
-                    else 
-                    {
+                    } else {
                         srcShift -= 32; 
                     }
                     sourceWord = srcLongAt(sourceIndex += 1); 
@@ -915,14 +792,11 @@ public class BitBlt
 
     /*  Color map the given source pixel. */
     
-    int mapPixelflags(int sourcePixel, int mapperFlags) 
-    {
+    int mapPixelflags(int sourcePixel, int mapperFlags) {
         int pv;
         pv = sourcePixel;
-        if ((mapperFlags & 1) != 0) 
-        {
-            if ((mapperFlags & 2) != 0) 
-            {
+        if ((mapperFlags & 1) != 0) {
+            if ((mapperFlags & 2) != 0) {
                 /* avoid introducing transparency by color reduction */
                 pv = rgbMapPixelflags(sourcePixel, mapperFlags);
                 if ((pv == 0) && (sourcePixel != 0)) 
@@ -930,16 +804,14 @@ public class BitBlt
                     pv = 1; 
                 }
             }
-            if ((mapperFlags & 4) != 0) 
-            {
+            if ((mapperFlags & 4) != 0) {
                 pv = cmLookupTable[pv & cmMask]; 
             }
         }
         return pv; 
     }
     
-    int rgbMapPixelflags(int sourcePixel, int mapperFlags) 
-    {
+    int rgbMapPixelflags(int sourcePixel, int mapperFlags) {
         int val =     (cmShiftTable[0] < 0) ? (sourcePixel & cmMaskTable[0]) >>> -(cmShiftTable[0]) : (sourcePixel & cmMaskTable[0]) << (cmShiftTable[0]);
         val = val |  ((cmShiftTable[1] < 0) ? (sourcePixel & cmMaskTable[1]) >>> -(cmShiftTable[1]) : (sourcePixel & cmMaskTable[1]) << (cmShiftTable[1]));
         val = val |  ((cmShiftTable[2] < 0) ? (sourcePixel & cmMaskTable[2]) >>> -(cmShiftTable[2]) : (sourcePixel & cmMaskTable[2]) << (cmShiftTable[2]));
@@ -947,10 +819,8 @@ public class BitBlt
     }
 
 
-    int mergeFnwith(int sourceWord, int destinationWord) 
-    {
-        switch (getCombinationRule()) 
-        {
+    int mergeFnwith(int sourceWord, int destinationWord) {
+        switch (getCombinationRule()) {
             case 0: return 0;
             case 1: return sourceWord & destinationWord;
             case 2: return sourceWord & (~destinationWord);
@@ -976,8 +846,7 @@ public class BitBlt
             case 22: return sourceWord;
             case 23: return sourceWord;
             case 24: return sourceWord;
-            case 25: 
-            { 
+            case 25: { 
                 if (sourceWord == 0)
                     return destinationWord;
                 return sourceWord | (partitionedANDtonBitsnPartitions(~sourceWord, destinationWord, getDest().getDepth(), getDest().getPixPerWord())); 
@@ -987,18 +856,15 @@ public class BitBlt
         }
     }
 
-    static int partitionedANDtonBitsnPartitions(int word1, int word2, int nBits, int nParts) 
-    {
+    static int partitionedANDtonBitsnPartitions(int word1, int word2, int nBits, int nParts) {
         int i;
         int result;
         int mask;
         /* partition mask starts at the right */
         mask = maskTable[nBits];
         result = 0;
-        for (i = 1; i <= nParts; i += 1) 
-        {
-            if ((word1 & mask) == mask) 
-            {
+        for (i = 1; i <= nParts; i += 1) {
+            if ((word1 & mask) == mask) {
                 result = result | (word2 & mask); 
             }
             /* slide left to next partition */

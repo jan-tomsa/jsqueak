@@ -69,8 +69,7 @@ import JSqueak.KeyboardQueue;
 import JSqueak.MouseStatus;
 import JSqueak.SqueakVM;
 
-public class Screen 
-{
+public class Screen {
     Dimension fExtent;
     private int fDepth;
     private JFrame fFrame;
@@ -94,8 +93,7 @@ public class Screen
     private final static ColorModel kBlackAndWhiteModel =
         new IndexColorModel(1, 2, kComponents, kComponents, kComponents);
     
-    public Screen(String title, int width, int height, int depth, Object vmSema) 
-    {
+    public Screen(String title, int width, int height, int depth, Object vmSema) {
         fVMSemaphore= vmSema;
         fExtent= new Dimension(width, height);
         fDepth= depth;
@@ -135,24 +133,20 @@ public class Screen
         fDisplay.getRootPane().setDoubleBuffered(false);    // prevents losing intermediate redraws (how?!)
     }
     
-    public JFrame getFrame() 
-    {
+    public JFrame getFrame() {
         return fFrame; 
     }
     
-    public void setBits(byte rawBits[], int depth) 
-    {
+    public void setBits(byte rawBits[], int depth) {
         fDepth= depth;
         fDisplay.setIcon(createDisplayAdapter(fDisplayBits= rawBits)); 
     }
     
-    byte[] getBits() 
-    {
+    byte[] getBits() {
         return fDisplayBits; 
     }
     
-    protected Icon createDisplayAdapter(byte storage[]) 
-    {
+    protected Icon createDisplayAdapter(byte storage[]) {
         DataBuffer buf= new DataBufferByte(storage, (fExtent.height*fExtent.width/8)*fDepth);       // single bank
         SampleModel sm= new MultiPixelPackedSampleModel(DataBuffer.TYPE_BYTE, fExtent.width, fExtent.height, fDepth /* bpp */);
         WritableRaster raster= Raster.createWritableRaster(sm, buf, new Point(0, 0));
@@ -160,19 +154,14 @@ public class Screen
         return new ImageIcon(image); 
     }
     
-    public void open() 
-    {
+    public void open() {
         fFrame.pack();
         fFrame.setVisible(true);
-        if (WITH_HEARTBEAT) 
-        {
-            fHeartBeat= new Timer(1000/FPS /* ms */, new ActionListener() 
-            {
-                public void actionPerformed(ActionEvent evt) 
-                {
+        if (WITH_HEARTBEAT) {
+            fHeartBeat= new Timer(1000/FPS /* ms */, new ActionListener() {
+                public void actionPerformed(ActionEvent evt) {
                     // Swing timers execute on EHT
-                    if (fScreenChanged) 
-                    {
+                    if (fScreenChanged) {
                         // could use synchronization, but lets rather paint too often
                         fScreenChanged= false;
                         Dimension extent= fDisplay.getSize();
@@ -185,52 +174,39 @@ public class Screen
         }
     }
     
-    public void close() 
-    {
+    public void close() {
         fFrame.setVisible(false);
         fFrame.dispose();
         if (WITH_HEARTBEAT)
             fHeartBeat.stop(); 
     }
     
-    public void redisplay(boolean immediately, Rectangle area) 
-    {
+    public void redisplay(boolean immediately, Rectangle area) {
         redisplay(immediately, area.x, area.y, area.width, area.height); 
     }
     
-    public void redisplay(boolean immediately, final int cornerX, final int cornerY, final int width, final int height) 
-    {
+    public void redisplay(boolean immediately, final int cornerX, final int cornerY, final int width, final int height) {
         fDisplay.repaint(cornerX, cornerY, width, height);
         fScreenChanged= true; 
     }
     
-    public void redisplay(boolean immediately) 
-    {
+    public void redisplay(boolean immediately) {
         fDisplay.repaint();
         fScreenChanged= true; 
     }
     
-    protected boolean scheduleRedisplay(boolean immediately, Runnable trigger) 
-    {
-        if (immediately) 
-        {
-            try
-            {
+    protected boolean scheduleRedisplay(boolean immediately, Runnable trigger) {
+        if (immediately) {
+            try {
                 SwingUtilities.invokeAndWait(trigger);
                 return true; 
-            }
-            catch (InterruptedException e) 
-            {
+            } catch (InterruptedException e) {
                 logRedisplayException(e); 
-            }
-            catch (InvocationTargetException e) 
-            {
+            } catch (InvocationTargetException e) {
                 logRedisplayException(e);
             }
             return false; 
-        }
-        else 
-        {
+        } else {
             SwingUtilities.invokeLater(trigger);
             return true; 
         }
@@ -248,18 +224,14 @@ public class Screen
     private final static byte kCursorComponentX[]= new byte[] { -1, 0, 0 };
     private final static byte kCursorComponentA[]= new byte[] { -1, -1, 0 };
     
-    protected Image createCursorAdapter(byte bits[], byte mask[]) 
-    {
+    protected Image createCursorAdapter(byte bits[], byte mask[]) {
         int bufSize= Squeak_CURSOR_HEIGHT*Squeak_CURSOR_WIDTH;
         DataBuffer buf= new DataBufferByte(new byte[bufSize], bufSize);
         // unpack samples and mask to bytes with transparency:
         int p= 0;
-        for (int row= 0; row<Squeak_CURSOR_HEIGHT; row++) 
-        {
-            for (int x=0; x<2; x++) 
-            {
-                for (int col= 0x80; col!=0; col>>>= 1) 
-                {
+        for (int row= 0; row<Squeak_CURSOR_HEIGHT; row++) {
+            for (int x=0; x<2; x++) {
+                for (int col= 0x80; col!=0; col>>>= 1) {
                     if ((mask[(row*4)+x] & col) != 0)
                         buf.setElem(p++, (bits[(row*4)+x] & col) != 0? C_BLACK : C_WHITE);
                     else
@@ -277,16 +249,14 @@ public class Screen
     {
         final int n= bitsAndMask.length/2;  // 32 bytes -> 8 bytes
         byte answer[]= new byte[n];
-        for (int i= 0; i<n; i++) 
-        {
+        for (int i= 0; i<n; i++) {
             // convert incoming little-endian words to bytes:
             answer[i]= bitsAndMask[offset + i]; 
         }
         return answer; 
     }
     
-    public void setCursor(byte imageAndMask[], int BWMask) 
-    {
+    public void setCursor(byte imageAndMask[], int BWMask) {
         int n= imageAndMask.length;
         for(int i=0; i<n/2; i++) 
         {
@@ -296,41 +266,33 @@ public class Screen
         Toolkit tk= Toolkit.getDefaultToolkit();
         Dimension cx= tk.getBestCursorSize(Squeak_CURSOR_WIDTH, Squeak_CURSOR_HEIGHT);
         Cursor c;
-        if (cx.width == 0 || cx.height == 0) 
-        {
+        if (cx.width == 0 || cx.height == 0) {
             c= Cursor.getDefaultCursor(); 
-        }
-        else 
-        {
+        } else {
             Image ci= createCursorAdapter(extractBits(imageAndMask, 0), extractBits(imageAndMask, Squeak_CURSOR_HEIGHT*4));
             c= tk.createCustomCursor(ci, new Point(0, 0), "Smalltalk-78 cursor"); 
         }
         fDisplay.setCursor(c); 
     }
     
-    public Dimension getExtent() 
-    {
+    public Dimension getExtent() {
         return fDisplay.getSize(); 
     }
     
-    public void setExtent(Dimension extent) 
-    {
+    public void setExtent(Dimension extent) {
         fDisplay.setSize(extent);
         fFrame.setSize(extent); 
     }
     
-    public Point getLastMousePoint() 
-    {
+    public Point getLastMousePoint() {
         return new Point(fMouseStatus.getfX(), fMouseStatus.getfY()); 
     }
     
-    public int getLastMouseButtonStatus() 
-    {
+    public int getLastMouseButtonStatus() {
         return ( fMouseStatus.getfButtons() & 7 ) | fKeyboardQueue.modifierKeys();
     }
     
-    public void setMousePoint(int x, int y) 
-    {
+    public void setMousePoint(int x, int y) {
         Point origin= fDisplay.getLocationOnScreen();
         x+= origin.x;
         y+= origin.y;
@@ -346,13 +308,11 @@ public class Screen
         }
     }
     
-    public int keyboardPeek() 
-    {
+    public int keyboardPeek() {
         return fKeyboardQueue.peek(); 
     }
     
-    public int keyboardNext() 
-    {
+    public int keyboardNext() {
         //System.err.println("character code="+fKeyboardQueue.peek());
         return fKeyboardQueue.next(); 
     }

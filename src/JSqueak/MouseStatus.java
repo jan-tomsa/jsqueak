@@ -17,15 +17,12 @@ public class MouseStatus extends MouseInputAdapter
     private final static int YELLOW = 2;
     private final static int BLUE = 1;
     
-    public MouseStatus( SqueakVM squeakVM )
-    {
+    public MouseStatus( SqueakVM squeakVM ) {
         fSqueakVM = squeakVM;
     }
     
-    private int mapButton(MouseEvent evt) 
-    {
-        switch (evt.getButton()) 
-        {
+    private int mapButton(MouseEvent evt) {
+        switch (evt.getButton()) {
             case MouseEvent.BUTTON1:
                 if (evt.isControlDown()) 
                     return YELLOW;
@@ -39,28 +36,24 @@ public class MouseStatus extends MouseInputAdapter
         throw new RuntimeException("unknown mouse button in event"); 
     }
     
-    public void mouseMoved(MouseEvent evt) 
-    {
+    public void mouseMoved(MouseEvent evt) {
         setfX(evt.getX());
         setfY(evt.getY());
         fSqueakVM.wakeVM(); 
     }
     
-    public void mouseDragged(MouseEvent evt) 
-    {
+    public void mouseDragged(MouseEvent evt) {
         setfX(evt.getX());
         setfY(evt.getY());
         fSqueakVM.wakeVM(); 
     }
     
-    public void mousePressed(MouseEvent evt) 
-    {
+    public void mousePressed(MouseEvent evt) {
         setfButtons(getfButtons() | mapButton(evt));
         fSqueakVM.wakeVM(); 
     }
     
-    public void mouseReleased(MouseEvent evt) 
-    {
+    public void mouseReleased(MouseEvent evt) {
         setfButtons(getfButtons() & ~mapButton(evt));
         fSqueakVM.wakeVM();
     }
