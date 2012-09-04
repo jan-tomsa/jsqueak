@@ -40,6 +40,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import JSqueak.monitor.Monitor;
+import JSqueak.util.HexUtils;
 
 /**
  * @author Daniel Ingalls
@@ -367,8 +368,11 @@ public class SqueakImage
             
             // Note classInt and data are just raw data; no base addr adjustment and no Int conversion
             data= new int[nWords];
-            for (int j= 0; j<nWords; j++)
-                data[j]= intFromInputSwapped(in, doSwap);
+            for (int j= 0; j<nWords; j++) {
+            	data[j]= intFromInputSwapped(in, doSwap);
+            }
+            String rawDataChunk = HexUtils.translateRawData(data);
+            monitor.logMessage(rawDataChunk);
             i= i+(nWords*4);
             
             SqueakObject javaObject= new SqueakObject(new Integer (classInt),(short)format,(short)hash,data);
