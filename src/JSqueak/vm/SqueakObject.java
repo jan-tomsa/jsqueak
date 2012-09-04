@@ -77,7 +77,7 @@ public class SqueakObject //Later make variants for common formats
         //Creation of objects from Squeak
         this(img);
         sqClass= cls;
-        int instSpec= SqueakVM.intFromSmall(cls.getPointerI(Squeak.Class_format));
+        int instSpec= SqueakVM.intFromSmall(cls.getPointerI(Squeak.CLASS_FORMAT));
         int instSize= ((instSpec>>1) & 0x3F) + ((instSpec>>10) & 0xC0) - 1; //0-255
         format= ((short) ((instSpec>>7) & 0xF)); //This is the 0-15 code
         
@@ -183,12 +183,12 @@ public class SqueakObject //Later make variants for common formats
     }
 
     public int classInstSize() {
-        int instSpec= SqueakVM.intFromSmall(this.getPointerI(Squeak.Class_format));
+        int instSpec= SqueakVM.intFromSmall(this.getPointerI(Squeak.CLASS_FORMAT));
         return ((instSpec>>1) & 0x3F) + ((instSpec>>10) & 0xC0) - 1; //0-255
     }
 
     public SqueakObject classGetName() {
-        return this.getPointerNI(Squeak.Class_name); 
+        return this.getPointerNI(Squeak.CLASS_NAME); 
     }
     
     public SqueakObject cloneIn(SqueakImage img) {

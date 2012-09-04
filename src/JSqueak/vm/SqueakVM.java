@@ -203,26 +203,26 @@ public class SqueakVM {
 	}
         
 	public void fetchContextRegisters(SqueakObject ctxt) {
-		Object meth = ctxt.getPointer(Squeak.Context_method);
+		Object meth = ctxt.getPointer(Squeak.CONTEXT_METHOD);
 		if (isSmallInt(meth)) {
 			// if the Method field is an integer, activeCntx is a block context
 			homeContext = (SqueakObject) ctxt
-					.getPointer(Squeak.BlockContext_home);
-			meth = homeContext.getPointerNI(Squeak.Context_method);
+					.getPointer(Squeak.BLOCK_CONTEXT_HOME);
+			meth = homeContext.getPointerNI(Squeak.CONTEXT_METHOD);
 		} else {
 			// otherwise home==ctxt
 			// if (! primHandler.isA(meth,Squeak.splOb_ClassCompiledMethod))
 			// meth= meth; // <-- break here
 			homeContext = (SqueakObject) ctxt;
 		}
-		receiver = homeContext.getPointer(Squeak.Context_receiver);
+		receiver = homeContext.getPointer(Squeak.CONTEXT_RECEIVER);
 		method = (SqueakObject) meth;
 		methodBytes = (byte[]) getMethod().bits;
 		pc = decodeSqueakPC(
-				ctxt.getPointerI(Squeak.Context_instructionPointer), method);
+				ctxt.getPointerI(Squeak.CONTEXT_INSTRUCTION_POINTER), method);
 		if (getPc() < -1)
 			dumpStack();
-		sp = decodeSqueakSP(ctxt.getPointerI(Squeak.Context_stackPointer));
+		sp = decodeSqueakSP(ctxt.getPointerI(Squeak.CONTEXT_STACK_POINTER));
 	}
     
 	public void storeContextRegisters() {
@@ -230,9 +230,9 @@ public class SqueakVM {
 		// see fetchContextRegisters for symmetry
 		// expects activeContext, pc, sp, and method state vars to still be
 		// valid
-		getActiveContext().setPointer(Squeak.Context_instructionPointer,
+		getActiveContext().setPointer(Squeak.CONTEXT_INSTRUCTION_POINTER,
 				encodeSqueakPC(getPc(), getMethod()));
-		getActiveContext().setPointer(Squeak.Context_stackPointer,
+		getActiveContext().setPointer(Squeak.CONTEXT_STACK_POINTER,
 				encodeSqueakSP(getSp()));
 	}
     
@@ -250,11 +250,11 @@ public class SqueakVM {
         
     public Integer encodeSqueakSP(int intSP) {
 		// sp is offset by tempFrameStart, -1 for z-rel addressing
-		return smallFromInt(intSP - (Squeak.Context_tempFrameStart - 1));
+		return smallFromInt(intSP - (Squeak.CONTEXT_TEMP_FRAME_START - 1));
 	}
         
 	public int decodeSqueakSP(Integer squeakPC) {
-		return intFromSmall(squeakPC) + (Squeak.Context_tempFrameStart - 1);
+		return intFromSmall(squeakPC) + (Squeak.CONTEXT_TEMP_FRAME_START - 1);
 	}
         
     //SmallIntegers are stored as Java (boxed)Integers
@@ -358,7 +358,7 @@ public class SqueakVM {
               // load temporary variable
               case 16: case 17: case 18: case 19: case 20: case 21: case 22: case 23: 
               case 24: case 25: case 26: case 27: case 28: case 29: case 30: case 31: 
-                  push(homeContext.getPointer(Squeak.Context_tempFrameStart+(b&0xF))); break;
+                  push(homeContext.getPointer(Squeak.CONTEXT_TEMP_FRAME_START+(b&0xF))); break;
       
               // loadLiteral
               case 32: case 33: case 34: case 35: case 36: case 37: case 38: case 39: 
@@ -378,7 +378,7 @@ public class SqueakVM {
               case 96: case 97: case 98: case 99: case 100: case 101: case 102: case 103: 
                   ((SqueakObject)receiver).setPointer(b&7,pop()); break;
               case 104: case 105: case 106: case 107: case 108: case 109: case 110: case 111: 
-                  homeContext.setPointer(Squeak.Context_tempFrameStart+(b&7),pop()); break;
+                  homeContext.setPointer(Squeak.CONTEXT_TEMP_FRAME_START+(b&7),pop()); break;
       
               // Quick push constant
               case 112: push(receiver); break;
@@ -391,12 +391,12 @@ public class SqueakVM {
               case 119: push(smallFromInt(2)); break;
       
               // Quick return
-              case 120: doReturn(receiver,homeContext.getPointerNI(Squeak.Context_sender)); break;
-              case 121: doReturn(getTrueObj(),homeContext.getPointerNI(Squeak.Context_sender)); break;
-              case 122: doReturn(getFalseObj(),homeContext.getPointerNI(Squeak.Context_sender)); break;
-              case 123: doReturn(nilObj,homeContext.getPointerNI(Squeak.Context_sender)); break;
-              case 124: doReturn(pop(),homeContext.getPointerNI(Squeak.Context_sender)); break;
-              case 125: doReturn(pop(),getActiveContext().getPointerNI(Squeak.BlockContext_caller)); break;
+              case 120: doReturn(receiver,homeContext.getPointerNI(Squeak.CONTEXT_SENDER)); break;
+              case 121: doReturn(getTrueObj(),homeContext.getPointerNI(Squeak.CONTEXT_SENDER)); break;
+              case 122: doReturn(getFalseObj(),homeContext.getPointerNI(Squeak.CONTEXT_SENDER)); break;
+              case 123: doReturn(nilObj,homeContext.getPointerNI(Squeak.CONTEXT_SENDER)); break;
+              case 124: doReturn(pop(),homeContext.getPointerNI(Squeak.CONTEXT_SENDER)); break;
+              case 125: doReturn(pop(),getActiveContext().getPointerNI(Squeak.BLOCK_CONTEXT_CALLER)); break;
               case 126: nono(); break;
               case 127: nono(); break;
   
@@ -574,7 +574,7 @@ public class SqueakVM {
         int lobits= nextByte&63;
         switch (nextByte>>6) {
             case 0: push(((SqueakObject)receiver).getPointer(lobits));break;
-            case 1: push(homeContext.getPointer(Squeak.Context_tempFrameStart+lobits)); break;
+            case 1: push(homeContext.getPointer(Squeak.CONTEXT_TEMP_FRAME_START+lobits)); break;
             case 2: push(getMethod().methodGetLiteral(lobits)); break;
             case 3: push(((SqueakObject)getMethod().methodGetLiteral(lobits)).getPointer(Squeak.Assn_value)); break;
         }
@@ -584,7 +584,7 @@ public class SqueakVM {
         int lobits= nextByte&63;
         switch (nextByte>>6) {
             case 0: ((SqueakObject)receiver).setPointer(lobits,top()); break;
-            case 1: homeContext.setPointer(Squeak.Context_tempFrameStart+lobits,top()); break;
+            case 1: homeContext.setPointer(Squeak.CONTEXT_TEMP_FRAME_START+lobits,top()); break;
             case 2: nono(); break;
             case 3: ((SqueakObject)getMethod().methodGetLiteral(lobits)).setPointer(Squeak.Assn_value,top()); break;
         }
@@ -594,7 +594,7 @@ public class SqueakVM {
         int lobits= nextByte&63;
         switch (nextByte>>6) {
             case 0: ((SqueakObject)receiver).setPointer(lobits,pop()); break;
-            case 1: homeContext.setPointer(Squeak.Context_tempFrameStart+lobits,pop()); break;
+            case 1: homeContext.setPointer(Squeak.CONTEXT_TEMP_FRAME_START+lobits,pop()); break;
             case 2: nono(); break;
             case 3: ((SqueakObject)getMethod().methodGetLiteral(lobits)).setPointer(Squeak.Assn_value,pop()); break;
         }
@@ -617,7 +617,7 @@ public class SqueakVM {
 	public void doReturn(Object returnValue, SqueakObject targetContext) {
 		if (targetContext == nilObj)
 			cannotReturn();
-		if (targetContext.getPointer(Squeak.Context_instructionPointer) == nilObj)
+		if (targetContext.getPointer(Squeak.CONTEXT_INSTRUCTION_POINTER) == nilObj)
 			cannotReturn();
 		SqueakObject thisContext = getActiveContext();
 		while (thisContext != targetContext) {
@@ -625,16 +625,16 @@ public class SqueakVM {
 				cannotReturn();
 			if (isUnwindMarked(thisContext))
 				aboutToReturn(returnValue, thisContext);
-			thisContext = thisContext.getPointerNI(Squeak.Context_sender);
+			thisContext = thisContext.getPointerNI(Squeak.CONTEXT_SENDER);
 		}
 		// No unwind to worry about, just peel back the stack (usually just to
 		// sender)
 		SqueakObject nextContext;
 		thisContext = getActiveContext();
 		while (thisContext != targetContext) {
-			nextContext = thisContext.getPointerNI(Squeak.Context_sender);
-			thisContext.setPointer(Squeak.Context_sender, nilObj);
-			thisContext.setPointer(Squeak.Context_instructionPointer, nilObj);
+			nextContext = thisContext.getPointerNI(Squeak.CONTEXT_SENDER);
+			thisContext.setPointer(Squeak.CONTEXT_SENDER, nilObj);
+			thisContext.setPointer(Squeak.CONTEXT_INSTRUCTION_POINTER, nilObj);
 			if (getReclaimableContextCount() > 0) {
 				setReclaimableContextCount(getReclaimableContextCount() - 1);
 				recycleIfPossible(thisContext);
@@ -770,7 +770,7 @@ public class SqueakVM {
 		SqueakObject lookupClass = getClass(newRcvr);
 		if (doSuper) {
 			lookupClass = getMethod().methodClassForSuper();
-			lookupClass = lookupClass.getPointerNI(Squeak.Class_superclass);
+			lookupClass = lookupClass.getPointerNI(Squeak.CLASS_SUPERCLASS);
 		}
 		int priorSP = getSp(); // to check if DNU changes argCount
 		MethodCacheEntry entry = findSelectorInClass(selector, argCount,
@@ -795,7 +795,7 @@ public class SqueakVM {
 		SqueakObject currentClass = startingClass;
 		SqueakObject mDict;
 		while (!(currentClass == nilObj)) {
-			mDict = currentClass.getPointerNI(Squeak.Class_mdict);
+			mDict = currentClass.getPointerNI(Squeak.CLASS_MDICT);
 			if (mDict == nilObj) {
 				// ["MethodDict pointer is nil (hopefully due a swapped out
 				// stub)
@@ -812,7 +812,7 @@ public class SqueakVM {
 				cacheEntry.primIndex = newMethod.methodPrimitiveIndex();
 				return cacheEntry;
 			}
-			currentClass = currentClass.getPointerNI(Squeak.Class_superclass);
+			currentClass = currentClass.getPointerNI(Squeak.CLASS_SUPERCLASS);
 		}
 
 		// Cound not find a normal message -- send #doesNotUnderstand:
@@ -890,21 +890,21 @@ public class SqueakVM {
 		int newPC = -1;
 		int tempCount = newMethod.methodTempCount();
 		int newSP = tempCount;
-		newSP += Squeak.Context_tempFrameStart - 1; // -1 for z-rel addressing
-		newContext.setPointer(Squeak.Context_method, newMethod);
+		newSP += Squeak.CONTEXT_TEMP_FRAME_START - 1; // -1 for z-rel addressing
+		newContext.setPointer(Squeak.CONTEXT_METHOD, newMethod);
 		// Following store is in case we alloc without init; all other fields
 		// get stored
-		newContext.setPointer(Squeak.BlockContext_initialIP, nilObj);
-		newContext.setPointer(Squeak.Context_sender, getActiveContext());
+		newContext.setPointer(Squeak.BLOCK_CONTEXT_INITIAL_IP, nilObj);
+		newContext.setPointer(Squeak.CONTEXT_SENDER, getActiveContext());
 		// Copy receiver and args to new context
 		// Note this statement relies on the receiver slot being contiguous with
 		// args...
 		System.arraycopy(getActiveContext().pointers, getSp() - argumentCount,
-				newContext.pointers, Squeak.Context_tempFrameStart - 1,
+				newContext.pointers, Squeak.CONTEXT_TEMP_FRAME_START - 1,
 				argumentCount + 1);
 		// ...and fill the remaining temps with nil
-		Arrays.fill(newContext.pointers, Squeak.Context_tempFrameStart
-				+ argumentCount, Squeak.Context_tempFrameStart + tempCount,
+		Arrays.fill(newContext.pointers, Squeak.CONTEXT_TEMP_FRAME_START
+				+ argumentCount, Squeak.CONTEXT_TEMP_FRAME_START + tempCount,
 				nilObj);
 		popN(argumentCount + 1);
 		setReclaimableContextCount(getReclaimableContextCount() + 1);
@@ -918,7 +918,7 @@ public class SqueakVM {
 		pc = newPC;
 		sp = newSP;
 		storeContextRegisters(); // not really necessary, I claim
-		receiver = newContext.getPointer(Squeak.Context_receiver);
+		receiver = newContext.getPointer(Squeak.CONTEXT_RECEIVER);
 		if (receiver != newRcvr)
 			System.err.println("receiver doesnt match");
 		checkForInterrupts();
@@ -1024,7 +1024,7 @@ public class SqueakVM {
 		// verify that lookupClass is actually in reciver's inheritance
 		SqueakObject currentClass = getClass(stackValue(3));
 		while (currentClass != lookupClass) {
-			currentClass = (SqueakObject) currentClass.pointers[Squeak.Class_superclass];
+			currentClass = (SqueakObject) currentClass.pointers[Squeak.CLASS_SUPERCLASS];
 			if (currentClass == nilObj)
 				return false;
 		}
@@ -1039,13 +1039,13 @@ public class SqueakVM {
 		if (!isMethodContext(ctxt))
 			return;
 		// if (isContext(ctxt)) return; //Defeats recycling of contexts
-		if (ctxt.pointersSize() == (Squeak.Context_tempFrameStart + Squeak.Context_smallFrameSize)) {
+		if (ctxt.pointersSize() == (Squeak.CONTEXT_TEMP_FRAME_START + Squeak.CONTEXT_SMALL_FRAME_SIZE)) {
 			// Recycle small contexts
 			ctxt.setPointer(0, freeContexts);
 			freeContexts = ctxt;
 		} else {
 			// Recycle large contexts
-			if (ctxt.pointersSize() != (Squeak.Context_tempFrameStart + Squeak.Context_largeFrameSize)) {
+			if (ctxt.pointersSize() != (Squeak.CONTEXT_TEMP_FRAME_START + Squeak.CONTEXT_lARGE_FRAME_SIZE)) {
 				// freeContexts=freeContexts;
 				return; // <-- break here
 			}
@@ -1068,7 +1068,7 @@ public class SqueakVM {
 			nAllocatedContexts++;
 			return instantiateClass(
 					(SqueakObject) specialObjects[Squeak.splOb_ClassMethodContext],
-					Squeak.Context_largeFrameSize);
+					Squeak.CONTEXT_lARGE_FRAME_SIZE);
 		} else {
 			if (freeContexts != nilObj) {
 				freebie = freeContexts;
@@ -1079,7 +1079,7 @@ public class SqueakVM {
 			nAllocatedContexts++;
 			return instantiateClass(
 					(SqueakObject) specialObjects[Squeak.splOb_ClassMethodContext],
-					Squeak.Context_smallFrameSize);
+					Squeak.CONTEXT_SMALL_FRAME_SIZE);
 		}
 	}
 
@@ -1181,7 +1181,7 @@ public class SqueakVM {
 	int stackDepth() {
 		SqueakObject ctxt = getActiveContext();
 		int depth = 0;
-		while ((ctxt = ctxt.getPointerNI(Squeak.Context_sender)) != nilObj)
+		while ((ctxt = ctxt.getPointerNI(Squeak.CONTEXT_SENDER)) != nilObj)
 			depth = depth + 1;
 		return depth;
 	}

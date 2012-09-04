@@ -671,8 +671,8 @@ class SqueakPrimitiveHandler
     private SqueakObject makePointWithXandY(Object x, Object y) {
         SqueakObject pointClass= vm.getSpecialObject(Squeak.splOb_ClassPoint);
         SqueakObject newPoint= vm.instantiateClass(pointClass,0);
-        newPoint.setPointer(Squeak.Point_x,x);
-        newPoint.setPointer(Squeak.Point_y,y);
+        newPoint.setPointer(Squeak.POINT_X,x);
+        newPoint.setPointer(Squeak.POINT_Y,y);
         return newPoint; 
     }
     
@@ -860,7 +860,7 @@ class SqueakPrimitiveHandler
         if (fmt<2)
             return -1; //not indexable
         if (fmt==3 && vm.isContext(sqObj)) 
-            return sqObj.getPointerI(Squeak.Context_stackPointer).intValue();
+            return sqObj.getPointerI(Squeak.CONTEXT_STACK_POINTER).intValue();
         if (fmt<6) 
             return sqObj.pointersSize() - sqObj.instSize(); // pointers
         if (fmt<12)
@@ -954,19 +954,19 @@ class SqueakPrimitiveHandler
         if (!vm.isContext(homeCtxt))
             throw PrimitiveFailed;
         
-        if (SqueakVM.isSmallInt(homeCtxt.getPointer(Squeak.Context_method))) {
+        if (SqueakVM.isSmallInt(homeCtxt.getPointer(Squeak.CONTEXT_METHOD))) {
             // ctxt is itself a block; get the context for its enclosing method
-            homeCtxt= homeCtxt.getPointerNI(Squeak.BlockContext_home);
+            homeCtxt= homeCtxt.getPointerNI(Squeak.BLOCK_CONTEXT_HOME);
         }
         int blockSize= homeCtxt.pointersSize() - homeCtxt.instSize(); //can use a const for instSize
         SqueakObject newBlock= vm.instantiateClass((vm.getSpecialObject(Squeak.splOb_ClassBlockContext)),blockSize);
         Integer initialPC= vm.encodeSqueakPC(vm.getPc()+2,vm.getMethod()); //*** check this...
-        newBlock.setPointer(Squeak.BlockContext_initialIP,initialPC);
-        newBlock.setPointer(Squeak.Context_instructionPointer,initialPC);// claim not needed; value will set it
-        newBlock.setPointer(Squeak.Context_stackPointer,SqueakVM.smallFromInt(0));
-        newBlock.setPointer(Squeak.BlockContext_argumentCount,sqArgCount);
-        newBlock.setPointer(Squeak.BlockContext_home,homeCtxt);
-        newBlock.setPointer(Squeak.Context_sender,vm.nilObj);
+        newBlock.setPointer(Squeak.BLOCK_CONTEXT_INITIAL_IP,initialPC);
+        newBlock.setPointer(Squeak.CONTEXT_INSTRUCTION_POINTER,initialPC);// claim not needed; value will set it
+        newBlock.setPointer(Squeak.CONTEXT_STACK_POINTER,SqueakVM.smallFromInt(0));
+        newBlock.setPointer(Squeak.BLOCK_CONTEXT_ARGUMENT_COUNT,sqArgCount);
+        newBlock.setPointer(Squeak.BLOCK_CONTEXT_HOME,homeCtxt);
+        newBlock.setPointer(Squeak.CONTEXT_SENDER,vm.nilObj);
         return newBlock; 
     }
     
@@ -976,18 +976,18 @@ class SqueakPrimitiveHandler
             throw PrimitiveFailed;
 
         SqueakObject block= (SqueakObject) rcvr;
-        Object blockArgCount= block.getPointer(Squeak.BlockContext_argumentCount);
+        Object blockArgCount= block.getPointer(Squeak.BLOCK_CONTEXT_ARGUMENT_COUNT);
         if (!SqueakVM.isSmallInt(blockArgCount)) 
             throw PrimitiveFailed;
         if ((((Integer)blockArgCount).intValue()!= argCount)) 
             throw PrimitiveFailed;
-        if (block.getPointer(Squeak.BlockContext_caller) != vm.nilObj) 
+        if (block.getPointer(Squeak.BLOCK_CONTEXT_CALLER) != vm.nilObj) 
             throw PrimitiveFailed;
-        System.arraycopy((Object)vm.getActiveContext().pointers,vm.getSp()-argCount+1,(Object)block.pointers,Squeak.Context_tempFrameStart,argCount);
-        Integer initialIP= block.getPointerI(Squeak.BlockContext_initialIP);
-        block.setPointer(Squeak.Context_instructionPointer,initialIP);
-        block.setPointer(Squeak.Context_stackPointer,new Integer(argCount));
-        block.setPointer(Squeak.BlockContext_caller,vm.getActiveContext());
+        System.arraycopy((Object)vm.getActiveContext().pointers,vm.getSp()-argCount+1,(Object)block.pointers,Squeak.CONTEXT_TEMP_FRAME_START,argCount);
+        Integer initialIP= block.getPointerI(Squeak.BLOCK_CONTEXT_INITIAL_IP);
+        block.setPointer(Squeak.CONTEXT_INSTRUCTION_POINTER,initialIP);
+        block.setPointer(Squeak.CONTEXT_STACK_POINTER,new Integer(argCount));
+        block.setPointer(Squeak.BLOCK_CONTEXT_CALLER,vm.getActiveContext());
         vm.popN(argCount+1);
         vm.newActiveContext(block);
     }
@@ -1038,7 +1038,7 @@ class SqueakPrimitiveHandler
         {
             if (classOrSuper == theClass) 
                 return true;
-            classOrSuper= ((SqueakObject)classOrSuper).pointers[Squeak.Class_superclass];
+            classOrSuper= ((SqueakObject)classOrSuper).pointers[Squeak.CLASS_SUPERCLASS];
         }
         return false; 
     }
@@ -1328,8 +1328,8 @@ class SqueakPrimitiveHandler
         SqueakObject pointClass= (SqueakObject)vm.getSpecialObject(Squeak.splOb_ClassPoint);
         SqueakObject newPoint= vm.instantiateClass(pointClass,0);
         Point lastMouse= theDisplay.getLastMousePoint();
-        newPoint.setPointer(Squeak.Point_x,SqueakVM.smallFromInt(lastMouse.x));
-        newPoint.setPointer(Squeak.Point_y,SqueakVM.smallFromInt(lastMouse.y));
+        newPoint.setPointer(Squeak.POINT_X,SqueakVM.smallFromInt(lastMouse.x));
+        newPoint.setPointer(Squeak.POINT_Y,SqueakVM.smallFromInt(lastMouse.y));
         return newPoint; 
     }
     

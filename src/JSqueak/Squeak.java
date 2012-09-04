@@ -31,11 +31,11 @@ public interface Squeak
 {
     
     // Squeak Headers
-    public final static int HeaderTypeMask= 3;
-    public final static int HeaderTypeSizeAndClass= 0; //3-word header
-    public final static int HeaderTypeClass= 1;        //2-word header
-    public final static int HeaderTypeFree= 2;         //free block
-    public final static int HeaderTypeShort= 3;        //1-word header
+    public final static int HEADER_TYPE_MASK= 3;
+    public final static int HEADER_TYPE_SIZE_AND_CLASS= 0; //3-word header
+    public final static int HEADER_TYPE_CLASS= 1;          //2-word header
+    public final static int HEADER_TYPE_FREE_BLOCK= 2;     //free block
+    public final static int HEADER_TYPE_SHORT= 3;          //1-word header
     
     //Indices into SpecialObjects array
     public final static int splOb_NilObject= 0;
@@ -87,24 +87,24 @@ public interface Squeak
     
     
     // Class layout:
-    public final static int Class_superclass= 0;
-    public final static int Class_mdict= 1;
-    public final static int Class_format= 2;
-    public final static int Class_name= 6;
+    public final static int CLASS_SUPERCLASS= 0;
+    public final static int CLASS_MDICT= 1;
+    public final static int CLASS_FORMAT= 2;
+    public final static int CLASS_NAME= 6;
     
     // Context layout
-    public final static int Context_sender= 0;
-    public final static int Context_instructionPointer= 1;
-    public final static int Context_stackPointer= 2;
-    public final static int Context_method= 3;
-    public final static int Context_receiver= 5;
-    public final static int Context_tempFrameStart= 6;
-    public final static int Context_smallFrameSize= 17;
-    public final static int Context_largeFrameSize= 57;
-    public final static int BlockContext_caller= 0;
-    public final static int BlockContext_argumentCount= 3;
-    public final static int BlockContext_initialIP= 4;
-    public final static int BlockContext_home= 5;
+    public final static int CONTEXT_SENDER= 0;
+    public final static int CONTEXT_INSTRUCTION_POINTER= 1;
+    public final static int CONTEXT_STACK_POINTER= 2;
+    public final static int CONTEXT_METHOD= 3;
+    public final static int CONTEXT_RECEIVER= 5;
+    public final static int CONTEXT_TEMP_FRAME_START= 6;
+    public final static int CONTEXT_SMALL_FRAME_SIZE= 17;
+    public final static int CONTEXT_lARGE_FRAME_SIZE= 57;
+    public final static int BLOCK_CONTEXT_CALLER= 0;
+    public final static int BLOCK_CONTEXT_ARGUMENT_COUNT= 3;
+    public final static int BLOCK_CONTEXT_INITIAL_IP= 4;
+    public final static int BLOCK_CONTEXT_HOME= 5;
 
     // Stream layout:
     public final static int Stream_array= 0;
@@ -144,8 +144,8 @@ public interface Squeak
     public final static int Message_lookupClass= 2;
 
     // Point layout:
-    public final static int Point_x= 0;
-    public final static int Point_y= 1;
+    public final static int POINT_X= 0;
+    public final static int POINT_Y= 1;
 
     // Largeinteger layout:
     public final static int Largeinteger_bytes= 0;

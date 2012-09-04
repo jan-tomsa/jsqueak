@@ -342,22 +342,22 @@ public class SqueakImage
             int format= 0;
             int hash= 0;
             int header= intFromInputSwapped(in, doSwap);
-            switch (header & Squeak.HeaderTypeMask) {
-                case Squeak.HeaderTypeSizeAndClass:
+            switch (header & Squeak.HEADER_TYPE_MASK) {
+                case Squeak.HEADER_TYPE_SIZE_AND_CLASS:
                     nWords= header>>2;
-                    classInt= intFromInputSwapped(in, doSwap) - Squeak.HeaderTypeSizeAndClass;
+                    classInt= intFromInputSwapped(in, doSwap) - Squeak.HEADER_TYPE_SIZE_AND_CLASS;
                     header= intFromInputSwapped(in, doSwap);
                     i= i+12;
                     break;
-                case Squeak.HeaderTypeClass:
-                    classInt= header - Squeak.HeaderTypeClass;
+                case Squeak.HEADER_TYPE_CLASS:
+                    classInt= header - Squeak.HEADER_TYPE_CLASS;
                     header= intFromInputSwapped(in, doSwap);
                     i= i+8;
                     nWords= (header>>2) & 63;
                     break;
-                case Squeak.HeaderTypeFree:
+                case Squeak.HEADER_TYPE_FREE_BLOCK:
                     throw new IOException("Unexpected free block");
-                case Squeak.HeaderTypeShort:
+                case Squeak.HEADER_TYPE_SHORT:
                     i= i+4;
                     classInt= (header>>12) & 31; //compact class index
                     //Note classInt<32 implies compact class index
