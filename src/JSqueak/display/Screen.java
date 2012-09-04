@@ -29,7 +29,7 @@ THE SOFTWARE.
  continued to help whenever I was particularly stuck during the project.
 */
 
-package JSqueak;
+package JSqueak.display;
 
 import java.awt.AWTException;
 import java.awt.BorderLayout;
@@ -64,6 +64,10 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.WindowConstants;
+
+import JSqueak.KeyboardQueue;
+import JSqueak.MouseStatus;
+import JSqueak.SqueakVM;
 
 public class Screen 
 {
@@ -317,12 +321,12 @@ public class Screen
     
     public Point getLastMousePoint() 
     {
-        return new Point(fMouseStatus.fX, fMouseStatus.fY); 
+        return new Point(fMouseStatus.getfX(), fMouseStatus.getfY()); 
     }
     
     public int getLastMouseButtonStatus() 
     {
-        return ( fMouseStatus.fButtons & 7 ) | fKeyboardQueue.modifierKeys();
+        return ( fMouseStatus.getfButtons() & 7 ) | fKeyboardQueue.modifierKeys();
     }
     
     public void setMousePoint(int x, int y) 

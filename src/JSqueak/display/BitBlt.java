@@ -21,9 +21,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package JSqueak;
+package JSqueak.display;
 
 import java.awt.Rectangle;
+
+import JSqueak.Squeak;
+import JSqueak.SqueakObject;
+import JSqueak.SqueakVM;
+import JSqueak.SqueakVM.FormCache;
 
 /**
  * @author Dan Ingalls
@@ -35,7 +40,7 @@ public class BitBlt
     private SqueakVM vm;
         
     private Object destForm;
-    SqueakVM.FormCache dest;
+    private SqueakVM.FormCache dest;
     private int destX, destY, width, height;
     private int destIndex;
     private int destDelta;
@@ -59,8 +64,8 @@ public class BitBlt
     private boolean destIsDisplay;
     private int clipX, clipY, clipWidth, clipHeight;
     private boolean isWarping;
-            int combinationRule;
-            int bitCount;
+            private int combinationRule;
+            private int bitCount;
     private int skew;
     private int mask1,mask2;
     private boolean preload;
@@ -104,32 +109,30 @@ public class BitBlt
         0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0xFFFFFFFF };
     
-    BitBlt(SqueakVM theVM) 
-    {
+    public BitBlt(SqueakVM theVM) {
         vm= theVM;
-        dest= vm.newFormCache();
+        setDest(vm.newFormCache());
         source= vm.newFormCache();
     }
     
-    boolean loadBitBlt(SqueakObject bbObject, 
+    public boolean loadBitBlt(SqueakObject bbObject, 
                        int argCount,  
                        boolean doWarp,
-                       SqueakObject displayForm) 
-    {
+                       SqueakObject displayForm) {
         success= true;
         isWarping = doWarp;
-        Object[] bbPointers= bbObject.pointers;
-        combinationRule = checkIntValue(bbPointers[3]);
-        if (!success || (combinationRule < 0) || (combinationRule > (41 - 2))) 
+        Object[] bbPointers= bbObject.getPointers();
+        setCombinationRule(checkIntValue(bbPointers[3]));
+        if (!success || (getCombinationRule() < 0) || (getCombinationRule() > (41 - 2))) 
             return false;
-        if (combinationRule >= 16 && combinationRule <= 17) 
+        if (getCombinationRule() >= 16 && getCombinationRule() <= 17) 
             return false;
         destForm = bbPointers[0];
         sourceForm = bbPointers[1];
         noSource = ignoreSourceOrHalftone(sourceForm);
         halftoneForm = bbPointers[2];
         noHalftone = ignoreSourceOrHalftone(halftoneForm);
-        if (!dest.loadFrom(destForm)) 
+        if (!getDest().loadFrom(destForm)) 
             return false;
         if (!loadBBDestRect(bbPointers)) 
             return false;
@@ -155,7 +158,7 @@ public class BitBlt
             return false;
         if (!success) 
             return false;
-        if (combinationRule == 30 || combinationRule == 31) 
+        if (getCombinationRule() == 30 || getCombinationRule() == 31) 
         {
             if (argCount != 1) 
                 return false; // alpha arg is required
@@ -174,13 +177,13 @@ public class BitBlt
         {
             clipHeight += clipY; clipY = 0; 
         }
-        if ((clipX + clipWidth) > dest.width) 
+        if ((clipX + clipWidth) > getDest().getWidth()) 
         {
-            clipWidth = dest.width - clipX; 
+            clipWidth = getDest().getWidth() - clipX; 
         }
-        if ((clipY + clipHeight) > dest.height) 
+        if ((clipY + clipHeight) > getDest().getHeight()) 
         {
-            clipHeight = dest.height - clipY; 
+            clipHeight = getDest().getHeight() - clipY; 
         }
         destIsDisplay= destForm == displayForm;
         return true; 
@@ -190,13 +193,13 @@ public class BitBlt
     {
         if (formPointer == vm.nilObj) 
             return true;
-        if (combinationRule == 0) 
+        if (getCombinationRule() == 0) 
             return true;
-        if (combinationRule == 5) 
+        if (getCombinationRule() == 5) 
             return true;
-        if (combinationRule == 10)
+        if (getCombinationRule() == 10)
             return true;
-        if (combinationRule == 15) 
+        if (getCombinationRule() == 15) 
             return true;
         return false; 
     }
@@ -217,7 +220,7 @@ public class BitBlt
         if (intOrFloatObj == vm.nilObj) 
             return valueIfNil;
         SqueakObject floatObj= (SqueakObject) intOrFloatObj;
-        if (floatObj.sqClass!=vm.specialObjects[Squeak.splOb_ClassFloat]) 
+        if (floatObj.getSqClass()!=vm.getSpecialObject(Squeak.splOb_ClassFloat)) 
         {
             success= false;
             return 0;
@@ -237,15 +240,15 @@ public class BitBlt
             return true;
         if (SqueakVM.isSmallInt(aForm)) 
             return false;
-        if (((SqueakObject)aForm).format<6) 
+        if (((SqueakObject)aForm).getFormat()<6) 
         {
             //Old-style 32xN monochrome halftone Forms
-            Object[] formPointers = ((SqueakObject)aForm).pointers;
+            Object[] formPointers = ((SqueakObject)aForm).getPointers();
             if (formPointers == null || formPointers.length<4)  
                 return false;
             halftoneHeight = checkIntValue(formPointers[2]);
             Object bitsObject = formPointers[0];
-            halftoneBits = (int[])((SqueakObject)bitsObject).bits;
+            halftoneBits = (int[])((SqueakObject)bitsObject).getBits();
             if (halftoneBits == null) 
                 return false;
             if (!success || (halftoneHeight < 1)) 
@@ -254,9 +257,9 @@ public class BitBlt
         else
         {
             //New spec accepts, basically, a word array
-            if (((SqueakObject) aForm).format != 6)
+            if (((SqueakObject) aForm).getFormat() != 6)
                 return false;
-            halftoneBits = (int[]) ((SqueakObject) aForm).bits;
+            halftoneBits = (int[]) ((SqueakObject) aForm).getBits();
             if (halftoneBits == null || halftoneBits.length < 1)
                 return false;
             halftoneHeight = halftoneBits.length;
@@ -268,8 +271,8 @@ public class BitBlt
     {
         destX = checkIntOrFloatIfNil(bbPointers[4], 0);
         destY = checkIntOrFloatIfNil(bbPointers[5], 0);
-        width = checkIntOrFloatIfNil(bbPointers[6], dest.width);
-        height = checkIntOrFloatIfNil(bbPointers[7], dest.height);
+        width = checkIntOrFloatIfNil(bbPointers[6], getDest().getWidth());
+        height = checkIntOrFloatIfNil(bbPointers[7], getDest().getHeight());
         return success;
     }
 
@@ -277,8 +280,8 @@ public class BitBlt
     {
         clipX = checkIntOrFloatIfNil(bbPointers[10], 0);
         clipY = checkIntOrFloatIfNil(bbPointers[11], 0);
-        clipWidth = checkIntOrFloatIfNil(bbPointers[12], dest.width);
-        clipHeight = checkIntOrFloatIfNil(bbPointers[13], dest.height);
+        clipWidth = checkIntOrFloatIfNil(bbPointers[12], getDest().getWidth());
+        clipHeight = checkIntOrFloatIfNil(bbPointers[13], getDest().getHeight());
         return success; 
     }
     
@@ -332,25 +335,25 @@ public class BitBlt
             bbW += sx;
             sx = 0; 
         }
-        if ((sx + bbW) > source.width)
-            bbW -= (sx + bbW) - source.width;
+        if ((sx + bbW) > source.getWidth())
+            bbW -= (sx + bbW) - source.getWidth();
         if (sy < 0) 
         {
             dy -= sy;
             bbH += sy;
             sy = 0; 
         }
-        if ((sy + bbH) > source.height)
-            bbH -= (sy + bbH) - source.height; 
+        if ((sy + bbH) > source.getHeight())
+            bbH -= (sy + bbH) - source.getHeight(); 
     }
     
-    Rectangle copyBits() 
+    public Rectangle copyBits() 
     {
         // combines copyBits, copybitsLockedAndClipped, and performcopyLoop
         clipRange();
         if (bbW <= 0 || bbH <= 0) return null;
         destMaskAndPointerInit();
-        bitCount = 0;
+        setBitCount(0);
         /* Choose and perform the actual copy loop. */
         if (noSource) 
         {
@@ -359,7 +362,7 @@ public class BitBlt
         else 
         {
             checkSourceOverlap();
-            if ((source.depth != dest.depth) || ((cmFlags != 0) || (source.msb != dest.msb))) 
+            if ((source.getDepth() != getDest().getDepth()) || ((cmFlags != 0) || (source.isMsb() != getDest().isMsb()))) 
             {
                 copyLoopPixMap(); 
             }
@@ -371,7 +374,7 @@ public class BitBlt
         }
         if (!destIsDisplay) 
             return null;
-        if ((combinationRule == 22) || (combinationRule == 32)) 
+        if ((getCombinationRule() == 22) || (getCombinationRule() == 32)) 
             return null;
         if (hDir > 0) 
         {
@@ -401,13 +404,13 @@ public class BitBlt
         int pixPerM1;
         int endBits;
         int startBits;
-        pixPerM1 = dest.pixPerWord - 1;  //Pix per word is power of two, so this makes a mask
-        startBits = dest.pixPerWord - (dx & pixPerM1); //how many pixels in first word
-        mask1 = dest.msb ? AllOnes >>> (32 - (startBits * dest.depth))
-                         : AllOnes << (32 - (startBits * dest.depth));
+        pixPerM1 = getDest().getPixPerWord() - 1;  //Pix per word is power of two, so this makes a mask
+        startBits = getDest().getPixPerWord() - (dx & pixPerM1); //how many pixels in first word
+        mask1 = getDest().isMsb() ? AllOnes >>> (32 - (startBits * getDest().getDepth()))
+                         : AllOnes << (32 - (startBits * getDest().getDepth()));
         endBits = (((dx + bbW) - 1) & pixPerM1) + 1;
-        mask2 = dest.msb ? AllOnes << (32 - (endBits * dest.depth))
-                         : AllOnes >>> (32 - (endBits * dest.depth));
+        mask2 = getDest().isMsb() ? AllOnes << (32 - (endBits * getDest().getDepth()))
+                         : AllOnes >>> (32 - (endBits * getDest().getDepth()));
         if (bbW < startBits) 
         { 
             //start and end in same word, so merge masks
@@ -417,11 +420,11 @@ public class BitBlt
         }
         else 
         {
-            nWords = (((bbW - startBits) + pixPerM1) / dest.pixPerWord) + 1;
+            nWords = (((bbW - startBits) + pixPerM1) / getDest().getPixPerWord()) + 1;
         }
         hDir = vDir = 1; //defaults for no overlap with source
-        destIndex = (dy * dest.pitch) + (dx / dest.pixPerWord); //both these in words, not bytes
-        destDelta = (dest.pitch * vDir) - (nWords * hDir); 
+        destIndex = (dy * getDest().getPitch()) + (dx / getDest().getPixPerWord()); //both these in words, not bytes
+        destDelta = (getDest().getPitch() * vDir) - (nWords * hDir); 
     }
     
     void checkSourceOverlap()
@@ -450,8 +453,8 @@ public class BitBlt
                     }
                 }
             }
-            destIndex = (dy * dest.pitch) + (dx / dest.pixPerWord); //recompute since dx, dy change
-            destDelta = (dest.pitch * vDir) - (nWords * hDir); 
+            destIndex = (dy * getDest().getPitch()) + (dx / getDest().getPixPerWord()); //recompute since dx, dy change
+            destDelta = (getDest().getPitch() * vDir) - (nWords * hDir); 
         }
     }
     
@@ -461,14 +464,14 @@ public class BitBlt
         int dxLowBits;
         int dWid;
         int sxLowBits;
-        pixPerM1 = dest.pixPerWord - 1;  //Pix per word is power of two, so this makes a mask
+        pixPerM1 = getDest().getPixPerWord() - 1;  //Pix per word is power of two, so this makes a mask
         sxLowBits = sx & pixPerM1;
         dxLowBits = dx & pixPerM1;
         // check if need to preload buffer
         // (i.e., two words of source needed for first word of destination)
         if (hDir > 0) 
         {
-            dWid = ((bbW < (dest.pixPerWord - dxLowBits)) ? bbW : (dest.pixPerWord - dxLowBits));
+            dWid = ((bbW < (getDest().getPixPerWord() - dxLowBits)) ? bbW : (getDest().getPixPerWord() - dxLowBits));
             preload = (sxLowBits + dWid) > pixPerM1; 
         }
         else
@@ -476,8 +479,8 @@ public class BitBlt
             dWid = ((bbW < (dxLowBits + 1)) ? bbW : (dxLowBits + 1));
             preload = ((sxLowBits - dWid) + 1) < 0; 
         }
-        skew = (source.msb) ? (sxLowBits - dxLowBits) * dest.depth
-                            :(dxLowBits - sxLowBits) * dest.depth;
+        skew = (source.isMsb()) ? (sxLowBits - dxLowBits) * getDest().getDepth()
+                            :(dxLowBits - sxLowBits) * getDest().getDepth();
         if (preload) 
         {
             if (skew < 0) 
@@ -486,8 +489,8 @@ public class BitBlt
                 skew -= 32; 
         }
         /* calculate increments from end of one line to start of next */
-        sourceIndex = (sy * source.pitch) + (sx / (32 / source.depth));
-        sourceDelta = (source.pitch * vDir) - (nWords * hDir);
+        sourceIndex = (sy * source.getPitch()) + (sx / (32 / source.getDepth()));
+        sourceDelta = (source.getPitch() * vDir) - (nWords * hDir);
         if (preload) 
             sourceDelta -= hDir; 
     }
@@ -499,17 +502,17 @@ public class BitBlt
     
     int srcLongAt(int index)
     {
-        return source.bits[index]; 
+        return source.getBits()[index]; 
     }
     
     int dstLongAt(int index)
     {
-        return dest.bits[index]; 
+        return getDest().getBits()[index]; 
     }
     
     void dstLongAtput(int index, int intToPut)
     {
-        dest.bits[index]= intToPut; 
+        getDest().getBits()[index]= intToPut; 
     }
     
     void copyLoopNoSource() 
@@ -536,7 +539,7 @@ public class BitBlt
             destIndex ++;
             destMask = AllOnes;
             //The central horizontal loop requires no store masking */
-            if (combinationRule == 3) 
+            if (getCombinationRule() == 3) 
             {
                 destWord = halftoneWord;
                 // Store rule requires no dest merging
@@ -586,7 +589,7 @@ public class BitBlt
         int destWord;
         int hInc;
         int thisWord;
-        int sourceLimit= source.bits.length;
+        int sourceLimit= source.getBits().length;
         hInc = hDir;
         if (skew == -32) 
         {
@@ -654,7 +657,7 @@ public class BitBlt
             //The central horizontal loop requires no store masking */
             destIndex += hInc;
             destMask = AllOnes;
-            if (combinationRule == 3) 
+            if (getCombinationRule() == 3) 
             {
                 //Store mode avoids dest merge function
                 if ((skew == 0) && (halftoneWord == AllOnes)) 
@@ -766,34 +769,34 @@ public class BitBlt
         int dstShiftLeft;
         int srcShift;
         int scrStartBits;
-        source.pixPerWord = 32 / source.depth;
-        sourcePixMask = maskTable[source.depth];
-        destPixMask = maskTable[dest.depth];
+        source.setPixPerWord(32 / source.getDepth());
+        sourcePixMask = maskTable[source.getDepth()];
+        destPixMask = maskTable[getDest().getDepth()];
         mapperFlags = cmFlags & (~8);
-        sourceIndex = (sy * source.pitch) + (sx / source.pixPerWord);
-        scrStartBits = source.pixPerWord - (sx & (source.pixPerWord - 1));
-        nSourceIncs = (bbW < scrStartBits) ? 0 : ((bbW - scrStartBits) / source.pixPerWord) + 1;
+        sourceIndex = (sy * source.getPitch()) + (sx / source.getPixPerWord());
+        scrStartBits = source.getPixPerWord() - (sx & (source.getPixPerWord() - 1));
+        nSourceIncs = (bbW < scrStartBits) ? 0 : ((bbW - scrStartBits) / source.getPixPerWord()) + 1;
         /* Note following two items were already calculated in destmask setup! */
-        sourceDelta = source.pitch - nSourceIncs;
-        startBits = dest.pixPerWord - (dx & (dest.pixPerWord - 1));
-        endBits = (((dx + bbW) - 1) & (dest.pixPerWord - 1)) + 1;
+        sourceDelta = source.getPitch() - nSourceIncs;
+        startBits = getDest().getPixPerWord() - (dx & (getDest().getPixPerWord() - 1));
+        endBits = (((dx + bbW) - 1) & (getDest().getPixPerWord() - 1)) + 1;
         if (bbW < startBits)
             startBits = bbW;
-        srcShift = (sx & (source.pixPerWord - 1)) * source.depth;
-        dstShift = (dx & (dest.pixPerWord - 1)) * dest.depth;
-        srcShiftInc = source.depth;
-        dstShiftInc = dest.depth;
+        srcShift = (sx & (source.getPixPerWord() - 1)) * source.getDepth();
+        dstShift = (dx & (getDest().getPixPerWord() - 1)) * getDest().getDepth();
+        srcShiftInc = source.getDepth();
+        dstShiftInc = getDest().getDepth();
         dstShiftLeft = 0;
-        if (source.msb) 
+        if (source.isMsb()) 
         {
-            srcShift = (32 - source.depth) - srcShift;
+            srcShift = (32 - source.getDepth()) - srcShift;
             srcShiftInc = 0 - srcShiftInc; 
         }
-        if (dest.msb) 
+        if (getDest().isMsb()) 
         {
-            dstShift = (32 - dest.depth) - dstShift;
+            dstShift = (32 - getDest().getDepth()) - dstShift;
             dstShiftInc = 0 - dstShiftInc;
-            dstShiftLeft = 32 - dest.depth; 
+            dstShiftLeft = 32 - getDest().getDepth(); 
         }
         for (i = 1; i <= bbH; i += 1) 
         {
@@ -830,7 +833,7 @@ public class BitBlt
                 else 
                 {
                     destMask = AllOnes;
-                    nPix = dest.pixPerWord; 
+                    nPix = getDest().getPixPerWord(); 
                 }
             } while(!((words -= 1) == 0));
             sourceIndex += sourceDelta;
@@ -870,7 +873,7 @@ public class BitBlt
                 dstShift += dstShiftInc;
                 if (!(((srcShift += srcShiftInc) & AllOnes) == 0)) 
                 {
-                    if (source.msb) 
+                    if (source.isMsb()) 
                     {
                         srcShift += 32; 
                     }
@@ -893,7 +896,7 @@ public class BitBlt
                 dstShift += dstShiftInc;
                 if (!(((srcShift += srcShiftInc) & AllOnes) == 0)) 
                 {
-                    if (source.msb) 
+                    if (source.isMsb()) 
                     {
                         srcShift += 32; 
                     }
@@ -946,7 +949,7 @@ public class BitBlt
 
     int mergeFnwith(int sourceWord, int destinationWord) 
     {
-        switch (combinationRule) 
+        switch (getCombinationRule()) 
         {
             case 0: return 0;
             case 1: return sourceWord & destinationWord;
@@ -977,9 +980,9 @@ public class BitBlt
             { 
                 if (sourceWord == 0)
                     return destinationWord;
-                return sourceWord | (partitionedANDtonBitsnPartitions(~sourceWord, destinationWord, dest.depth, dest.pixPerWord)); 
+                return sourceWord | (partitionedANDtonBitsnPartitions(~sourceWord, destinationWord, getDest().getDepth(), getDest().getPixPerWord())); 
             }
-            case 26: return partitionedANDtonBitsnPartitions(~sourceWord, destinationWord, dest.depth, dest.pixPerWord);
+            case 26: return partitionedANDtonBitsnPartitions(~sourceWord, destinationWord, getDest().getDepth(), getDest().getPixPerWord());
             default: return sourceWord; 
         }
     }
@@ -1003,4 +1006,28 @@ public class BitBlt
         }
         return result; 
     }
+
+	public int getCombinationRule() {
+		return combinationRule;
+	}
+
+	public void setCombinationRule(int combinationRule) {
+		this.combinationRule = combinationRule;
+	}
+
+	public SqueakVM.FormCache getDest() {
+		return dest;
+	}
+
+	public void setDest(SqueakVM.FormCache dest) {
+		this.dest = dest;
+	}
+
+	public int getBitCount() {
+		return bitCount;
+	}
+
+	public void setBitCount(int bitCount) {
+		this.bitCount = bitCount;
+	}
 }

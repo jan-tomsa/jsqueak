@@ -32,6 +32,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
+import JSqueak.display.BitBlt;
+import JSqueak.display.Screen;
 import JSqueak.image.SqueakImage;
 
 /**
@@ -1197,16 +1199,16 @@ class SqueakPrimitiveHandler
         if (disp.squeakForm==null) 
             throw PrimitiveFailed;
         vm.specialObjects[Squeak.splOb_TheDisplay]= displayObj;
-        displayBitmap= disp.bits;
+        displayBitmap= disp.getBits();
         boolean remap= theDisplay != null;
         if (remap) {
-            Dimension requestedExtent= new Dimension(disp.width, disp.height);
+            Dimension requestedExtent= new Dimension(disp.getWidth(), disp.getHeight());
             if (!theDisplay.getExtent().equals(requestedExtent)) {
-                System.err.println("Squeak: changing screen size to " + disp.width + "@" + disp.height);
+                System.err.println("Squeak: changing screen size to " + disp.getWidth() + "@" + disp.getHeight());
                 theDisplay.setExtent(requestedExtent); 
             }
         } else {
-            theDisplay= new Screen("Squeak", disp.width,disp.height,disp.depth,vm);
+            theDisplay= new Screen("Squeak", disp.getWidth(),disp.getHeight(),disp.getDepth(),vm);
             theDisplay.getFrame().addWindowListener(new WindowAdapter() 
             {
                 public void windowClosing(WindowEvent evt) 
@@ -1220,8 +1222,8 @@ class SqueakPrimitiveHandler
         }
         displayBitmapInBytes= new byte[displayBitmap.length*4];
         copyBitmapToByteArray(displayBitmap,displayBitmapInBytes,
-                              new Rectangle(0,0,disp.width,disp.height),disp.pitch,disp.depth);
-        theDisplay.setBits(displayBitmapInBytes, disp.depth);
+                              new Rectangle(0,0,disp.getWidth(),disp.getHeight()),disp.getPitch(),disp.getDepth());
+        theDisplay.setBits(displayBitmapInBytes, disp.getDepth());
         if (!remap) 
             theDisplay.open();
     }
@@ -1249,11 +1251,11 @@ class SqueakPrimitiveHandler
         int offsetY = checkSmallInt(offsetObj.pointers[1]);
         //Current cursor code in Screen expects cursor and mask to be packed in cursorBytes
         //For now we make them be equal copies of incoming 16x16 cursor
-        int cursorBitsSize= cursorForm.bits.length;
+        int cursorBitsSize= cursorForm.getBits().length;
         byte[] cursorBytes= new byte[8*cursorBitsSize];
-        copyBitmapToByteArray(cursorForm.bits,cursorBytes,
-                              new Rectangle(0,0,cursorForm.width,cursorForm.height),
-                              cursorForm.pitch,cursorForm.depth);
+        copyBitmapToByteArray(cursorForm.getBits(),cursorBytes,
+                              new Rectangle(0,0,cursorForm.getWidth(),cursorForm.getHeight()),
+                              cursorForm.getPitch(),cursorForm.getDepth());
         for(int i=0; i<(cursorBitsSize*4); i++)
             cursorBytes[i+(cursorBitsSize*4)]= cursorBytes[i];
         theDisplay.setCursor(cursorBytes,BWMask);
@@ -1290,11 +1292,11 @@ class SqueakPrimitiveHandler
         Rectangle affectedArea= bitbltTable.copyBits();
         if (affectedArea != null && theDisplay!=null) {
             copyBitmapToByteArray(displayBitmap,displayBitmapInBytes,affectedArea,
-                                  bitbltTable.dest.pitch,bitbltTable.dest.depth);
+                                  bitbltTable.getDest().getPitch(),bitbltTable.getDest().getDepth());
             theDisplay.redisplay(false, affectedArea); 
         }
-        if (bitbltTable.combinationRule == 22 || bitbltTable.combinationRule == 32)
-            vm.popNandPush(2,SqueakVM.smallFromInt(bitbltTable.bitCount));
+        if (bitbltTable.getCombinationRule() == 22 || bitbltTable.getCombinationRule() == 32)
+            vm.popNandPush(2,SqueakVM.smallFromInt(bitbltTable.getBitCount()));
     }
     
     private void copyBitmapToByteArray(int[] words, byte[] bytes,Rectangle rect, int raster, int depth) {

@@ -4,18 +4,20 @@ import java.awt.event.MouseEvent;
 
 import javax.swing.event.MouseInputAdapter;
 
-class MouseStatus extends MouseInputAdapter 
+public class MouseStatus extends MouseInputAdapter 
 {
     private final SqueakVM fSqueakVM;
     
-    int fX, fY;
-    int fButtons;
+    private int fX;
+
+	private int fY;
+    private int fButtons;
     
     private final static int RED = 4;
     private final static int YELLOW = 2;
     private final static int BLUE = 1;
     
-    MouseStatus( SqueakVM squeakVM )
+    public MouseStatus( SqueakVM squeakVM )
     {
         fSqueakVM = squeakVM;
     }
@@ -39,27 +41,51 @@ class MouseStatus extends MouseInputAdapter
     
     public void mouseMoved(MouseEvent evt) 
     {
-        fX = evt.getX();
-        fY = evt.getY();
+        setfX(evt.getX());
+        setfY(evt.getY());
         fSqueakVM.wakeVM(); 
     }
     
     public void mouseDragged(MouseEvent evt) 
     {
-        fX= evt.getX();
-        fY= evt.getY();
+        setfX(evt.getX());
+        setfY(evt.getY());
         fSqueakVM.wakeVM(); 
     }
     
     public void mousePressed(MouseEvent evt) 
     {
-        fButtons |= mapButton(evt);
+        setfButtons(getfButtons() | mapButton(evt));
         fSqueakVM.wakeVM(); 
     }
     
     public void mouseReleased(MouseEvent evt) 
     {
-        fButtons &= ~mapButton(evt);
+        setfButtons(getfButtons() & ~mapButton(evt));
         fSqueakVM.wakeVM();
     }
+
+	public int getfX() {
+		return fX;
+	}
+
+	public void setfX(int fX) {
+		this.fX = fX;
+	}
+
+	public int getfY() {
+		return fY;
+	}
+
+	public void setfY(int fY) {
+		this.fY = fY;
+	}
+
+	public int getfButtons() {
+		return fButtons;
+	}
+
+	public void setfButtons(int fButtons) {
+		this.fButtons = fButtons;
+	}
 }

@@ -44,7 +44,15 @@ public class SqueakObject //Later make variants for common formats
 {
     private short hash;        //12-bit Squeak hash
     short format;      // 4-bit Squeak format
-    Object sqClass;  //squeak class
+    public short getFormat() {
+		return format;
+	}
+
+	public Object getBits() {
+		return bits;
+	}
+
+	Object sqClass;  //squeak class
     Object[] pointers; //pointer fields; fixed as well as indexable
     Object bits;       //indexable binary data (bytes or ints)
     
@@ -202,7 +210,7 @@ public class SqueakObject //Later make variants for common formats
             bits= ((int[])other.bits).clone(); 
     }
         
-    double getFloatBits() { // isn't this slow?'
+    public double getFloatBits() { // isn't this slow?'
         return ((Double)bits).doubleValue(); 
     }
     

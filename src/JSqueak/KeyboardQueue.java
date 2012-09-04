@@ -9,7 +9,7 @@ import java.util.List;
  * I'm JSqueak's keyboard driver.  I convert Java KeyEvents into Squeak
  * key and modifier key press events. 
  */
-class KeyboardQueue implements KeyListener
+public class KeyboardQueue implements KeyListener
 {
     /**
      * The size of the character queue.
@@ -73,24 +73,24 @@ class KeyboardQueue implements KeyListener
     
     private int fModifierKeys = 0;
     
-    KeyboardQueue( SqueakVM squeakVM )
+    public KeyboardQueue( SqueakVM squeakVM )
     {
         fSqueakVM = squeakVM;
     }
     
     // -- JSqueak interface
     
-    int peek() 
+    public int peek() 
     {
         return fCharQueue.isEmpty() ? 0 : keycode( (Character) fCharQueue.get( 0 ) ); 
     }
     
-    int next() 
+    public int next() 
     {
         return keycode( (Character) fCharQueue.remove( 0 ) ); 
     }
 
-    int modifierKeys() 
+    public int modifierKeys() 
     {
         return fModifierKeys;
     }
