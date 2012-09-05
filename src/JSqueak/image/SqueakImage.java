@@ -382,7 +382,11 @@ public class SqueakImage
         }
         
         //Temp version of spl objs needed for makeCCArray; not a good object yet
-        setSpecialObjectsArray((SqueakObject)(oopMap.get(new Integer(specialObjectsOopInt))));
+        SqueakObject specialObjectsArrayOop = (SqueakObject)(oopMap.get(new Integer(specialObjectsOopInt)));
+        int[] soaByteCode = (int[]) specialObjectsArrayOop.getBits();
+        String soaByteCodeHex = HexUtils.translateRawData(soaByteCode);
+        monitor.logMessage("Special objects bytecode: " + soaByteCodeHex);
+        setSpecialObjectsArray(specialObjectsArrayOop);
         Integer[] ccArray= makeCCArray(oopMap,getSpecialObjectsArray());
         int oldOop= getSpecialObjectsArray().oldOopAt(Squeak.splOb_ClassFloat);
         SqueakObject floatClass= ((SqueakObject) oopMap.get(new Integer(oldOop)));
