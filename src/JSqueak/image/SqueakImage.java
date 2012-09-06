@@ -51,7 +51,7 @@ import JSqueak.vm.SqueakVM;
  * A SqueakImage represents the complete state of a running Squeak.
  * This implemenatation uses Java objects (see SqueakObject) for all Squeak objects,
  * with direct pointers between them.  Enumeration is supported by objectTable,
- * which points weakly to all objects.  SmallIntegers are modelled by Java Integers.
+ * which points weakly to all objects.  SmallIntegers are modeled by Java Integers.
  *
  * Some care is taken in reclaiming OT slots, to preserve the order of creation of objects,
  * as this matters for Squeak weak objects, should we ever support them.
@@ -61,11 +61,12 @@ public class SqueakImage
 {
     private final String DEFAULT_IMAGE_NAME = "jsqueak.image";
     
+    ImageHeader imageHeader;
     private SqueakVM vm;
     private WeakReference[] objectTable;
     private int otMaxUsed;
     private int otMaxOld;
-    private int lastHash;
+    //private int lastHash;
     private int lastOTindex;
     
     private File imageFile;
@@ -234,8 +235,8 @@ public class SqueakImage
             if (!getMoreOops(OT_GROW_SIZE))
                 throw new RuntimeException("Object table has reached capacity");
         objectTable[++otMaxUsed]= new WeakReference(obj);
-        lastHash= 13849 + (27181 * lastHash);
-        return (short) (lastHash & 0xFFF); 
+        imageHeader.lastHash= 13849 + (27181 * imageHeader.lastHash);
+        return (short) (imageHeader.lastHash & 0xFFF); 
     }
     
     private boolean getMoreOops(int request) 
@@ -310,6 +311,19 @@ public class SqueakImage
         throw new IOException( "Image saving is not implemented yet" );
     } 
     
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    private class ImageHeader {
+    	int headerSize;
+    	int endOfMemory;
+    	int oldBaseAddr;
+    	int specialObjectsOopInt;
+    	int lastHash;
+    	int savedWindowSize;
+    	int fullScreenFlag;
+    	int extraVMMemory;
+    }
+    
     private void readImage(DataInput in) throws IOException 
     {
         System.out.println("Start reading at " + System.currentTimeMillis());
@@ -319,51 +333,44 @@ public class SqueakImage
         objectTable = new WeakReference[OT_MIN_SIZE];
         otMaxUsed= -1;
         Hashtable oopMap= new Hashtable(30000);
-        doSwap = determineEndianness(in);
-        System.err.println("version passes with swap= " + doSwap);
-        int headerSize= intFromInputSwapped(in);
-        int endOfMemory= intFromInputSwapped(in); //first unused location in heap
-        int oldBaseAddr= intFromInputSwapped(in); //object memory base address of image
-        int specialObjectsOopInt= intFromInputSwapped(in); //oop of array of special oops
-        lastHash= intFromInputSwapped(in); //Should be loaded from, and saved to the image header
-        int savedWindowSize= intFromInputSwapped(in);
-        int fullScreenFlag= intFromInputSwapped(in);
-        int extraVMMemory= intFromInputSwapped(in);
-        in.skipBytes(headerSize - (9*4)); //skip to end of header
         
-        for (int i= 0; i<endOfMemory;) {
+        // Read image header
+        readImageHeader(in);
+        
+        // Read objects 
+        for (int i= 0; i<imageHeader.endOfMemory;) {
             int nWords= 0;
             int classInt= 0;
             int[] data;
             int format= 0;
             int hash= 0;
-            int header= intFromInputSwapped(in);
-            switch (header & Squeak.HEADER_TYPE_MASK) {
+            int objectHeader= intFromInputSwapped(in);
+            switch (objectHeader & Squeak.HEADER_TYPE_MASK) {
                 case Squeak.HEADER_TYPE_SIZE_AND_CLASS:
-                    nWords= header>>2;
+                    nWords= objectHeader>>2;
                     classInt= intFromInputSwapped(in) - Squeak.HEADER_TYPE_SIZE_AND_CLASS;
-                    header= intFromInputSwapped(in);
+                    objectHeader= intFromInputSwapped(in);
                     i= i+12;
                     break;
                 case Squeak.HEADER_TYPE_CLASS:
-                    classInt= header - Squeak.HEADER_TYPE_CLASS;
-                    header= intFromInputSwapped(in);
+                    classInt= objectHeader - Squeak.HEADER_TYPE_CLASS;
+                    objectHeader= intFromInputSwapped(in);
                     i= i+8;
-                    nWords= (header>>2) & 63;
+                    nWords= (objectHeader>>2) & 63;
                     break;
                 case Squeak.HEADER_TYPE_FREE_BLOCK:
                     throw new IOException("Unexpected free block");
                 case Squeak.HEADER_TYPE_SHORT:
                     i= i+4;
-                    classInt= (header>>12) & 31; //compact class index
+                    classInt= (objectHeader>>12) & 31; //compact class index
                     //Note classInt<32 implies compact class index
-                    nWords= (header>>2) & 63;
+                    nWords= (objectHeader>>2) & 63;
                     break;
             }
             int baseAddr= i - 4; //0-rel byte oop of this object (base header)
             nWords--;  //length includes base header which we have already read
-            format= ((header>>8) & 15);
-            hash= ((header>>17) & 4095);
+            format= ((objectHeader>>8) & 15);
+            hash= ((objectHeader>>17) & 4095);
             
             // Note classInt and data are just raw data; no base addr adjustment and no Int conversion
             data= new int[nWords];
@@ -378,18 +385,22 @@ public class SqueakImage
             registerObject(squeakObject);
             //oopMap is from old oops to new objects
             //Why can't we use ints as keys??...
-            oopMap.put(new Integer(baseAddr+oldBaseAddr),squeakObject); 
+            oopMap.put(new Integer(baseAddr+imageHeader.oldBaseAddr),squeakObject); 
         }
         
         //Temp version of spl objs needed for makeCCArray; not a good object yet
-        SqueakObject specialObjectsArrayOop = (SqueakObject)(oopMap.get(new Integer(specialObjectsOopInt)));
+        SqueakObject specialObjectsArrayOop = (SqueakObject)(oopMap.get(new Integer(imageHeader.specialObjectsOopInt)));
         int[] soaByteCode = (int[]) specialObjectsArrayOop.getBits();
         String soaByteCodeHex = HexUtils.translateRawData(soaByteCode);
         monitor.logMessage("Special objects bytecode: " + soaByteCodeHex);
         setSpecialObjectsArray(specialObjectsArrayOop);
+        
         Integer[] ccArray= makeCCArray(oopMap,getSpecialObjectsArray());
+        
         int oldOop= getSpecialObjectsArray().oldOopAt(Squeak.splOb_ClassFloat);
         SqueakObject floatClass= ((SqueakObject) oopMap.get(new Integer(oldOop)));
+        
+        monitor.setStatus("Installing");
         System.out.println("Start installs at " + System.currentTimeMillis());
         monitor.logMessage("Start installs at " + System.currentTimeMillis());
         for (int i= 0; i<otMaxUsed; i++) 
@@ -404,9 +415,24 @@ public class SqueakImage
         System.out.println("Done installing at " + System.currentTimeMillis());
         monitor.logMessage("Done installing at " + System.currentTimeMillis());
         //Proper version of spl objs -- it's a good object
-        setSpecialObjectsArray((SqueakObject)(oopMap.get(new Integer(specialObjectsOopInt))));
+        setSpecialObjectsArray((SqueakObject)(oopMap.get(new Integer(imageHeader.specialObjectsOopInt))));
         otMaxOld= otMaxUsed; 
     }
+
+	private void readImageHeader(DataInput in) throws IOException {
+		imageHeader = new ImageHeader();
+        doSwap = determineEndianness(in);
+        System.err.println("version passes with swap= " + doSwap);
+        imageHeader.headerSize= intFromInputSwapped(in);
+        imageHeader.endOfMemory= intFromInputSwapped(in); //first unused location in heap
+        imageHeader.oldBaseAddr= intFromInputSwapped(in); //object memory base address of image
+        imageHeader.specialObjectsOopInt= intFromInputSwapped(in); //oop of array of special oops
+        imageHeader.lastHash= intFromInputSwapped(in); //Should be loaded from, and saved to the image header
+        imageHeader.savedWindowSize= intFromInputSwapped(in);
+        imageHeader.fullScreenFlag= intFromInputSwapped(in);
+        imageHeader.extraVMMemory= intFromInputSwapped(in);
+        in.skipBytes(imageHeader.headerSize - (9*4)); //skip to end of header
+	}
 
 	private boolean determineEndianness(DataInput in) throws IOException {
 		int version= in.readInt();
