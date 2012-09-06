@@ -67,7 +67,8 @@ class SqueakImageReader {
         return outgoing; 
     }
         
-	public void readObjects(Hashtable oopMap, SqueakImage objectRegistry) throws IOException {
+	public Hashtable readObjects(SqueakImage objectRegistry) throws IOException {
+        Hashtable oopMap= new Hashtable(30000);
 		for (int i= 0; i<imageHeader.endOfMemory;) {
             int dataLength = 0;
             int classInt = 0;
@@ -115,6 +116,7 @@ class SqueakImageReader {
             //Why can't we use ints as keys??...
             oopMap.put(Integer.valueOf(baseAddr+imageHeader.oldBaseAddr),squeakObject); 
         }
+		return oopMap;
 	}
 
 }

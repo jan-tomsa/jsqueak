@@ -319,7 +319,6 @@ public class SqueakImage
         
         objectTable = new WeakReference[OT_MIN_SIZE];
         otMaxUsed= -1;
-        Hashtable oopMap= new Hashtable(30000);
         
         SqueakImageReader reader = new SqueakImageReader(in);
         
@@ -327,16 +326,16 @@ public class SqueakImage
         imageHeader = reader.readImageHeader();
         
         // Read objects 
-        reader.readObjects(oopMap, this);
+        Hashtable oopMap = reader.readObjects(this);
         
-        //Temp version of spl objs needed for makeCCArray; not a good object yet
+        //Temp version of spl objs needed for makeCompactClassesArray; not a good object yet
         SqueakObject specialObjectsArrayOop = (SqueakObject)(oopMap.get(Integer.valueOf(imageHeader.specialObjectsOopInt)));
         int[] soaByteCode = (int[]) specialObjectsArrayOop.getBits();
         String soaByteCodeHex = HexUtils.translateRawData(soaByteCode);
         monitor.logMessage("Special objects bytecode: " + soaByteCodeHex);
         setSpecialObjectsArray(specialObjectsArrayOop);
         
-        Integer[] ccArray= makeCCArray(oopMap,getSpecialObjectsArray());
+        Integer[] ccArray= makeCompactClassesArray(oopMap,getSpecialObjectsArray());
         
         int oldOop= getSpecialObjectsArray().oldOopAt(Squeak.splOb_ClassFloat);
         SqueakObject floatClass= ((SqueakObject) oopMap.get(Integer.valueOf(oldOop)));
@@ -361,9 +360,9 @@ public class SqueakImage
         otMaxOld= otMaxUsed; 
     }
 
-    private Integer[] makeCCArray(Hashtable oopMap, SqueakObject splObs) 
+    private Integer[] makeCompactClassesArray(Hashtable oopMap, SqueakObject splObs) 
     {
-        //Makes an aray of the complact classes as oldOops (still need to be mapped)
+        //Makes an aray of the compact classes as oldOops (still need to be mapped)
         int oldOop= splObs.oldOopAt(Squeak.splOb_CompactClasses);
         SqueakObject compactClassesArray= ((SqueakObject) oopMap.get(new Integer(oldOop)));
         Integer[] ccArray= new Integer[31];
