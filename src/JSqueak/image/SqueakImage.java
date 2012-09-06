@@ -338,58 +338,10 @@ public class SqueakImage
         readImageHeader(in);
         
         // Read objects 
-        for (int i= 0; i<imageHeader.endOfMemory;) {
-            int nWords= 0;
-            int classInt= 0;
-            int[] data;
-            int format= 0;
-            int hash= 0;
-            int objectHeader= intFromInputSwapped(in);
-            switch (objectHeader & Squeak.HEADER_TYPE_MASK) {
-                case Squeak.HEADER_TYPE_SIZE_AND_CLASS:
-                    nWords= objectHeader>>2;
-                    classInt= intFromInputSwapped(in) - Squeak.HEADER_TYPE_SIZE_AND_CLASS;
-                    objectHeader= intFromInputSwapped(in);
-                    i= i+12;
-                    break;
-                case Squeak.HEADER_TYPE_CLASS:
-                    classInt= objectHeader - Squeak.HEADER_TYPE_CLASS;
-                    objectHeader= intFromInputSwapped(in);
-                    i= i+8;
-                    nWords= (objectHeader>>2) & 63;
-                    break;
-                case Squeak.HEADER_TYPE_FREE_BLOCK:
-                    throw new IOException("Unexpected free block");
-                case Squeak.HEADER_TYPE_SHORT:
-                    i= i+4;
-                    classInt= (objectHeader>>12) & 31; //compact class index
-                    //Note classInt<32 implies compact class index
-                    nWords= (objectHeader>>2) & 63;
-                    break;
-            }
-            int baseAddr= i - 4; //0-rel byte oop of this object (base header)
-            nWords--;  //length includes base header which we have already read
-            format= ((objectHeader>>8) & 15);
-            hash= ((objectHeader>>17) & 4095);
-            
-            // Note classInt and data are just raw data; no base addr adjustment and no Int conversion
-            data= new int[nWords];
-            for (int j= 0; j<nWords; j++) {
-            	data[j]= intFromInputSwapped(in);
-            }
-            String rawDataChunk = HexUtils.translateRawData(data);
-            monitor.logMessage(rawDataChunk);
-            i= i+(nWords*4);
-            
-            SqueakObject squeakObject= new SqueakObject(new Integer (classInt),(short)format,(short)hash,data);
-            registerObject(squeakObject);
-            //oopMap is from old oops to new objects
-            //Why can't we use ints as keys??...
-            oopMap.put(new Integer(baseAddr+imageHeader.oldBaseAddr),squeakObject); 
-        }
+        readObjects(in, oopMap);
         
         //Temp version of spl objs needed for makeCCArray; not a good object yet
-        SqueakObject specialObjectsArrayOop = (SqueakObject)(oopMap.get(new Integer(imageHeader.specialObjectsOopInt)));
+        SqueakObject specialObjectsArrayOop = (SqueakObject)(oopMap.get(Integer.valueOf(imageHeader.specialObjectsOopInt)));
         int[] soaByteCode = (int[]) specialObjectsArrayOop.getBits();
         String soaByteCodeHex = HexUtils.translateRawData(soaByteCode);
         monitor.logMessage("Special objects bytecode: " + soaByteCodeHex);
@@ -398,7 +350,7 @@ public class SqueakImage
         Integer[] ccArray= makeCCArray(oopMap,getSpecialObjectsArray());
         
         int oldOop= getSpecialObjectsArray().oldOopAt(Squeak.splOb_ClassFloat);
-        SqueakObject floatClass= ((SqueakObject) oopMap.get(new Integer(oldOop)));
+        SqueakObject floatClass= ((SqueakObject) oopMap.get(Integer.valueOf(oldOop)));
         
         monitor.setStatus("Installing");
         System.out.println("Start installs at " + System.currentTimeMillis());
@@ -414,10 +366,61 @@ public class SqueakImage
         
         System.out.println("Done installing at " + System.currentTimeMillis());
         monitor.logMessage("Done installing at " + System.currentTimeMillis());
+        
         //Proper version of spl objs -- it's a good object
-        setSpecialObjectsArray((SqueakObject)(oopMap.get(new Integer(imageHeader.specialObjectsOopInt))));
+        setSpecialObjectsArray((SqueakObject)(oopMap.get(Integer.valueOf(imageHeader.specialObjectsOopInt))));
         otMaxOld= otMaxUsed; 
     }
+
+	private void readObjects(DataInput in, Hashtable oopMap) throws IOException {
+		for (int i= 0; i<imageHeader.endOfMemory;) {
+            int dataLength = 0;
+            int classInt = 0;
+            int[] data;
+            int objectHeader = intFromInputSwapped(in);
+            switch (objectHeader & Squeak.HEADER_TYPE_MASK) {
+                case Squeak.HEADER_TYPE_SIZE_AND_CLASS:
+                    dataLength= objectHeader>>2;
+                    classInt= intFromInputSwapped(in) - Squeak.HEADER_TYPE_SIZE_AND_CLASS;
+                    objectHeader= intFromInputSwapped(in);
+                    i += 12;
+                    break;
+                case Squeak.HEADER_TYPE_CLASS:
+                    classInt= objectHeader - Squeak.HEADER_TYPE_CLASS;
+                    objectHeader= intFromInputSwapped(in);
+                    i += 8;
+                    dataLength= (objectHeader>>2) & 63;
+                    break;
+                case Squeak.HEADER_TYPE_FREE_BLOCK:
+                    throw new IOException("Unexpected free block");
+                case Squeak.HEADER_TYPE_SHORT:
+                    i += 4;
+                    classInt= (objectHeader>>12) & 31; //compact class index
+                    //Note classInt<32 implies compact class index
+                    dataLength= (objectHeader>>2) & 63;
+                    break;
+            }
+            int baseAddr = i - 4; //0-rel byte oop of this object (base header)
+            dataLength--;  //length includes base header which we have already read
+            int format= ((objectHeader>>8) & 15);
+            int hash= ((objectHeader>>17) & 4095);
+            
+            // Note classInt and data are just raw data; no base addr adjustment and no Int conversion
+            data= new int[dataLength];
+            for (int j= 0; j<dataLength; j++) {
+            	data[j]= intFromInputSwapped(in);
+            }
+            String rawDataChunk = HexUtils.translateRawData(data);
+            monitor.logMessage(rawDataChunk);
+            i += dataLength*4;
+            
+            SqueakObject squeakObject= new SqueakObject(Integer.valueOf(classInt),(short)format,(short)hash,data);
+            registerObject(squeakObject);
+            //oopMap is from old oops to new objects
+            //Why can't we use ints as keys??...
+            oopMap.put(Integer.valueOf(baseAddr+imageHeader.oldBaseAddr),squeakObject); 
+        }
+	}
 
 	private void readImageHeader(DataInput in) throws IOException {
 		imageHeader = new ImageHeader();
