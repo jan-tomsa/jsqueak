@@ -296,7 +296,7 @@ class SqueakPrimitiveHandler
                          break;
                 case 71: popNandPush(2,primitiveNewWithSize()); // Class.new
                          break;
-                case 72: popNandPush(2,primitiveArrayBecome(false));
+                case 72: popNandPush(2,primitiveArrayBecome());
                          break;
                 case 73: popNandPush(2,primitiveAt(false,false,true)); // instVarAt:
                          break;
@@ -364,7 +364,7 @@ class SqueakPrimitiveHandler
                           break;
                 case 125: popNandPush(2,setLowSpaceThreshold());
                           break;
-                case 128: popNandPush(2,primitiveArrayBecome(true));
+                case 128: popNandPush(2,primitiveArrayBecomeBothWays());
                           break;
                 case 129: popNandPush(1,image.getSpecialObjectsArray());
                           break;
@@ -1348,15 +1348,30 @@ class SqueakPrimitiveHandler
         return peeked==0? (Object) vm.nilObj : SqueakVM.smallFromInt(peeked); 
     }
     
-    private SqueakObject primitiveArrayBecome(boolean doBothWays) {
+    private SqueakObject primitiveArrayBecome() {
         // Should flush method cache
         SqueakObject rcvr= stackNonInteger(1);
         SqueakObject arg= stackNonInteger(0);
         
-        if ( image.bulkBecome(rcvr.pointers, arg.pointers, doBothWays) )
+        try { 
+        	image.bulkBecome(rcvr.pointers, arg.pointers); 
             return rcvr;    
+        } catch (RuntimeException e) {
+        	throw PrimitiveFailed;
+        }
+    }
+    
+    private SqueakObject primitiveArrayBecomeBothWays() {
+        // Should flush method cache
+        SqueakObject rcvr= stackNonInteger(1);
+        SqueakObject arg= stackNonInteger(0);
         
-        throw PrimitiveFailed;
+        try {
+        	image.bulkBecomeTwoWay(rcvr.pointers, arg.pointers);
+            return rcvr;    
+        } catch (RuntimeException e) {
+        	throw PrimitiveFailed;
+        }
     }
     
     private SqueakObject primitiveSomeObject() {

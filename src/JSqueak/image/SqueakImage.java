@@ -127,19 +127,19 @@ public class SqueakImage
         unbuffered.close(); 
     }
     
-    private static class NonObjectsInFromArray extends RuntimeException {
+    private static class NonObjectsInSourceArray extends RuntimeException {
 		private static final long serialVersionUID = -5448204393408280585L;
 	};
     
-	private static class RepeatedObjectsInFromArray extends RuntimeException {
+	private static class RepeatedObjectsInSourceArray extends RuntimeException {
 		private static final long serialVersionUID = 4226255506291014244L;
 	}
 	
-	private static class NonObjectsInToArray extends RuntimeException {
+	private static class NonObjectsInTargetArray extends RuntimeException {
 		private static final long serialVersionUID = 7990715745242510056L;
 	}
 
-	private static class RepeatedObjectsInToArray extends RuntimeException {
+	private static class RepeatedObjectsInTargetArray extends RuntimeException {
 		private static final long serialVersionUID = -5226177918479481765L;
 	}
 	
@@ -147,28 +147,34 @@ public class SqueakImage
 		private static final long serialVersionUID = 4948074590011014722L;
 	}
 	
-    public boolean bulkBecome(Object[] sourceObjects, Object[] targetClasses, boolean twoWay) 
+    public void bulkBecome(Object[] sourceObjects, Object[] targetClasses) 
     {
-        try {
-        	verifySameLengths(sourceObjects, targetClasses);
-            Hashtable mutations = setupMutationsTable(sourceObjects, targetClasses, twoWay, sourceObjects.length);
-	        mutateClasses(mutations);
-        } catch (Exception e) {
-        	return false;
-        }
-        return true; 
+    	verifySameLengths(sourceObjects, targetClasses);
+    	int length = sourceObjects.length;
+		Hashtable mutations= new Hashtable(length*4);
+		setupMutationsSourceToTarget(sourceObjects, targetClasses, length, mutations);
+        mutateClasses(mutations,objectTable,otMaxUsed);
     }
 
-	private void verifySameLengths(Object[] sourceObjects,
-			Object[] targetClasses) {
+    public void bulkBecomeTwoWay(Object[] sourceObjects, Object[] targetClasses) 
+    {
+    	verifySameLengths(sourceObjects, targetClasses);
+    	int length = sourceObjects.length;
+		Hashtable mutations= new Hashtable(length*4*2);
+		setupMutationsSourceToTarget(sourceObjects, targetClasses, length, mutations);
+		setupMutationsTargetToSource(sourceObjects, targetClasses, length, mutations);
+        mutateClasses(mutations,objectTable,otMaxUsed);
+    }
+
+	private void verifySameLengths(Object[] sourceObjects, Object[] targetClasses) {
         if (sourceObjects.length != targetClasses.length) 
             throw new SourceAndTargedHaveDifferentLengths();
 	}
 
-	private void mutateClasses(Hashtable mutations) {
-		for(int i=0; i<=otMaxUsed; i++) {
+	private void mutateClasses(Hashtable mutations, WeakReference[] stObjectTable, int objectTableLength) {
+		for(int i=0; i<=objectTableLength; i++) {
 		    // Now, for every object...
-		    SqueakObject object = (SqueakObject)objectTable[i].get();
+		    SqueakObject object = (SqueakObject)stObjectTable[i].get();
 		    if (object != null) {
 		        // mutate the class
 		    	Object sqClass = (SqueakObject)mutations.get(object.getSqClass());
@@ -188,30 +194,30 @@ public class SqueakImage
 		}
 	}
 
-	private static Hashtable setupMutationsTable(Object[] sourceObjects,
-			Object[] targetClasses, boolean twoWay, int length) {
-		Hashtable mutations= new Hashtable(length*4*(twoWay?2:1));
+	private static void setupMutationsTargetToSource(Object[] sourceObjects,
+			Object[] targetClasses, int length, Hashtable mutations) {
+		for(int i=0; i<length; i++) {
+			Object targetClass= targetClasses[i];
+		    if (!(targetClass instanceof SqueakObject)) 
+		    	throw new NonObjectsInTargetArray();  //non-objects in to array
+		    if (mutations.get(targetClass) != null) 
+		        throw new RepeatedObjectsInTargetArray(); //repeated oops in to array
+		    else 
+		        mutations.put(targetClass,sourceObjects[i]); 
+		}
+	}
+
+	private static void setupMutationsSourceToTarget(Object[] sourceObjects,
+			Object[] targetClasses, int length, Hashtable mutations) {
 		for(int i=0; i<length; i++) {
 			Object sourceObj = sourceObjects[i];
 		    if (!(sourceObj instanceof SqueakObject)) 
-		        throw new NonObjectsInFromArray();  //non-objects in from array
+		        throw new NonObjectsInSourceArray();  //non-objects in from array
 		    if (mutations.get(sourceObj) != null) 
-		        throw new RepeatedObjectsInFromArray(); //repeated oops in from array
+		        throw new RepeatedObjectsInSourceArray(); //repeated oops in from array
 		    else 
 		        mutations.put(sourceObj,targetClasses[i]); 
 		}
-		if (twoWay) {
-		    for(int i=0; i<length; i++) {
-		    	Object p= targetClasses[i];
-		        if (!(p instanceof SqueakObject)) 
-		        	throw new NonObjectsInToArray();  //non-objects in to array
-		        if (mutations.get(p) != null) 
-		            throw new RepeatedObjectsInToArray(); //repeated oops in to array
-		        else 
-		            mutations.put(p,sourceObjects[i]); 
-		    }
-		}
-		return mutations;
 	}
 
     //Enumeration...
