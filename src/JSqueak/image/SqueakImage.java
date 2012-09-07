@@ -127,60 +127,69 @@ public class SqueakImage
         unbuffered.close(); 
     }
     
-    private class NonObjectsInFromArray extends Exception {
+    private static class NonObjectsInFromArray extends RuntimeException {
 		private static final long serialVersionUID = -5448204393408280585L;
 	};
     
-	private class RepeatedObjectsInFromArray extends Exception {
+	private static class RepeatedObjectsInFromArray extends RuntimeException {
 		private static final long serialVersionUID = 4226255506291014244L;
 	}
 	
-	private class NonObjectsInToArray extends Exception {
+	private static class NonObjectsInToArray extends RuntimeException {
 		private static final long serialVersionUID = 7990715745242510056L;
 	}
 
-	private class RepeatedObjectsInToArray extends Exception {
+	private static class RepeatedObjectsInToArray extends RuntimeException {
 		private static final long serialVersionUID = -5226177918479481765L;
+	}
+	
+	private static class SourceAndTargedHaveDifferentLengths extends RuntimeException {
+		private static final long serialVersionUID = 4948074590011014722L;
 	}
 	
     public boolean bulkBecome(Object[] sourceObjects, Object[] targetClasses, boolean twoWay) 
     {
-        int length= sourceObjects.length;
-        if (length != targetClasses.length) 
-            return false;
         try {
-            Hashtable mutations = setupMutationsTable(sourceObjects,
-					targetClasses, twoWay, length);
-	        for(int i=0; i<=otMaxUsed; i++) {
-	            // Now, for every object...
-	            SqueakObject obj = (SqueakObject)objectTable[i].get();
-	            if (obj != null) {
-	                // mutate the class
-	            	Object mut = (SqueakObject)mutations.get(obj.getSqClass());
-	                if (mut != null)
-	                    obj.setSqClass( mut ); 
-	                Object body[];
-	                if ((body= obj.getPointers()) != null) {
-	                    // and mutate body pointers
-	                    for(int j=0; j<body.length; j++) {
-	                    	Object ptr= body[j];
-	                        mut= mutations.get(ptr);
-	                        if (mut != null) 
-	                            body[j]= mut; 
-	                    }
-	                }
-	            }
-	        }
+        	verifySameLengths(sourceObjects, targetClasses);
+            Hashtable mutations = setupMutationsTable(sourceObjects, targetClasses, twoWay, sourceObjects.length);
+	        mutateClasses(mutations);
         } catch (Exception e) {
         	return false;
         }
         return true; 
     }
 
-	private Hashtable setupMutationsTable(Object[] sourceObjects,
-			Object[] targetClasses, boolean twoWay, int length)
-			throws NonObjectsInFromArray, RepeatedObjectsInFromArray,
-			NonObjectsInToArray, RepeatedObjectsInToArray {
+	private void verifySameLengths(Object[] sourceObjects,
+			Object[] targetClasses) {
+        if (sourceObjects.length != targetClasses.length) 
+            throw new SourceAndTargedHaveDifferentLengths();
+	}
+
+	private void mutateClasses(Hashtable mutations) {
+		for(int i=0; i<=otMaxUsed; i++) {
+		    // Now, for every object...
+		    SqueakObject object = (SqueakObject)objectTable[i].get();
+		    if (object != null) {
+		        // mutate the class
+		    	Object sqClass = (SqueakObject)mutations.get(object.getSqClass());
+		        if (sqClass != null)
+		            object.setSqClass( sqClass ); 
+		        Object body[] = object.getPointers();
+		        if (body != null) {
+		            // and mutate body pointers
+		            for(int j=0; j<body.length; j++) {
+		            	Object ptr = body[j];
+		                sqClass = mutations.get(ptr);
+		                if (sqClass != null) 
+		                    body[j]= sqClass; 
+		            }
+		        }
+		    }
+		}
+	}
+
+	private static Hashtable setupMutationsTable(Object[] sourceObjects,
+			Object[] targetClasses, boolean twoWay, int length) {
 		Hashtable mutations= new Hashtable(length*4*(twoWay?2:1));
 		for(int i=0; i<length; i++) {
 			Object sourceObj = sourceObjects[i];
