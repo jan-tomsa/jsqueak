@@ -127,62 +127,83 @@ public class SqueakImage
         unbuffered.close(); 
     }
     
-    public boolean bulkBecome(Object[] fromPointers, Object[] toPointers, boolean twoWay) 
+    private class NonObjectsInFromArray extends Exception {
+		private static final long serialVersionUID = -5448204393408280585L;
+	};
+    
+	private class RepeatedObjectsInFromArray extends Exception {
+		private static final long serialVersionUID = 4226255506291014244L;
+	}
+	
+	private class NonObjectsInToArray extends Exception {
+		private static final long serialVersionUID = 7990715745242510056L;
+	}
+
+	private class RepeatedObjectsInToArray extends Exception {
+		private static final long serialVersionUID = -5226177918479481765L;
+	}
+	
+    public boolean bulkBecome(Object[] sourceObjects, Object[] targetClasses, boolean twoWay) 
     {
-        int n= fromPointers.length;
-        Object p, ptr, body[], mut;
-        SqueakObject obj;
-        if (n != toPointers.length) 
+        int length= sourceObjects.length;
+        if (length != targetClasses.length) 
             return false;
-        Hashtable mutations= new Hashtable(n*4*(twoWay?2:1));
-        for(int i=0; i<n; i++) 
-        {
-            p= fromPointers[i];
-            if (!(p instanceof SqueakObject)) 
-                return false;  //non-objects in from array
-            if (mutations.get(p) != null) 
-                return false; //repeated oops in from array
-            else 
-                mutations.put(p,toPointers[i]); 
-        }
-        if (twoWay) 
-        {
-            for(int i=0; i<n; i++) 
-            {
-                p= toPointers[i];
-                if (!(p instanceof SqueakObject)) 
-                    return false;  //non-objects in to array
-                if (mutations.get(p) != null) 
-                    return false; //repeated oops in to array
-                else 
-                    mutations.put(p,fromPointers[i]); 
-            }
-        }
-        for(int i=0; i<=otMaxUsed; i++) 
-        {
-            // Now, for every object...
-            obj= (SqueakObject)objectTable[i].get();
-            if (obj != null) 
-            {
-                // mutate the class
-                mut = (SqueakObject)mutations.get(obj.getSqClass());
-                if (mut != null)
-                    obj.setSqClass( mut ); 
-                if ((body= obj.getPointers()) != null)
-                {
-                    // and mutate body pointers
-                    for(int j=0; j<body.length; j++) 
-                    {
-                        ptr= body[j];
-                        mut= mutations.get(ptr);
-                        if (mut != null) 
-                            body[j]= mut; 
-                    }
-                }
-            }
+        try {
+            Hashtable mutations = setupMutationsTable(sourceObjects,
+					targetClasses, twoWay, length);
+	        for(int i=0; i<=otMaxUsed; i++) {
+	            // Now, for every object...
+	            SqueakObject obj = (SqueakObject)objectTable[i].get();
+	            if (obj != null) {
+	                // mutate the class
+	            	Object mut = (SqueakObject)mutations.get(obj.getSqClass());
+	                if (mut != null)
+	                    obj.setSqClass( mut ); 
+	                Object body[];
+	                if ((body= obj.getPointers()) != null) {
+	                    // and mutate body pointers
+	                    for(int j=0; j<body.length; j++) {
+	                    	Object ptr= body[j];
+	                        mut= mutations.get(ptr);
+	                        if (mut != null) 
+	                            body[j]= mut; 
+	                    }
+	                }
+	            }
+	        }
+        } catch (Exception e) {
+        	return false;
         }
         return true; 
     }
+
+	private Hashtable setupMutationsTable(Object[] sourceObjects,
+			Object[] targetClasses, boolean twoWay, int length)
+			throws NonObjectsInFromArray, RepeatedObjectsInFromArray,
+			NonObjectsInToArray, RepeatedObjectsInToArray {
+		Hashtable mutations= new Hashtable(length*4*(twoWay?2:1));
+		for(int i=0; i<length; i++) {
+			Object sourceObj = sourceObjects[i];
+		    if (!(sourceObj instanceof SqueakObject)) 
+		        throw new NonObjectsInFromArray();  //non-objects in from array
+		    if (mutations.get(sourceObj) != null) 
+		        throw new RepeatedObjectsInFromArray(); //repeated oops in from array
+		    else 
+		        mutations.put(sourceObj,targetClasses[i]); 
+		}
+		if (twoWay) {
+		    for(int i=0; i<length; i++) {
+		    	Object p= targetClasses[i];
+		        if (!(p instanceof SqueakObject)) 
+		        	throw new NonObjectsInToArray();  //non-objects in to array
+		        if (mutations.get(p) != null) 
+		            throw new RepeatedObjectsInToArray(); //repeated oops in to array
+		        else 
+		            mutations.put(p,sourceObjects[i]); 
+		    }
+		}
+		return mutations;
+	}
 
     //Enumeration...
     public SqueakObject nextInstance(int startingIndex, SqueakObject sqClass) 
@@ -329,7 +350,7 @@ public class SqueakImage
         Hashtable<Integer, SqueakObject> oopMap = reader.readObjects(this);
         
         //Temp version of special objects needed for makeCompactClassesArray; not a good object yet
-        SqueakObject specialObjectsArrayOop = (SqueakObject)(oopMap.get(Integer.valueOf(imageHeader.specialObjectsOopInt)));
+        SqueakObject specialObjectsArrayOop = oopMap.get(Integer.valueOf(imageHeader.specialObjectsOopInt));
         int[] soaByteCode = (int[]) specialObjectsArrayOop.getBits();
         String soaByteCodeHex = HexUtils.translateRawData(soaByteCode);
         monitor.logMessage("Special objects bytecode: " + soaByteCodeHex);
@@ -338,7 +359,7 @@ public class SqueakImage
         Integer[] ccArray= makeCompactClassesArray(oopMap,getSpecialObjectsArray());
         
         int oldOop= getSpecialObjectsArray().oldOopAt(Squeak.splOb_ClassFloat);
-        SqueakObject floatClass= ((SqueakObject) oopMap.get(Integer.valueOf(oldOop)));
+        SqueakObject floatClass= oopMap.get(Integer.valueOf(oldOop));
         
         monitor.setStatus("Installing");
         System.out.println("Start installs at " + System.currentTimeMillis());
@@ -346,9 +367,7 @@ public class SqueakImage
         for (int i= 0; i<otMaxUsed; i++) {
         	SqueakObject squeakObject = (SqueakObject) objectTable[i].get();
         	monitor.logMessage("Installing: "+squeakObject.getHash());
-            // Don't need oldBaseAddr here**
         	squeakObject.install(oopMap,ccArray,floatClass); 
-            //((SqueakObject) objectTable[i].get()).install(oopMap,ccArray,floatClass);
         }
         
         System.out.println("Done installing at " + System.currentTimeMillis());
@@ -359,15 +378,14 @@ public class SqueakImage
         otMaxOld= otMaxUsed; 
     }
 
-    private Integer[] makeCompactClassesArray(Hashtable oopMap, SqueakObject splObs) 
+    private Integer[] makeCompactClassesArray(Hashtable<Integer, SqueakObject> oopMap, SqueakObject splObs) 
     {
         //Makes an array of the compact classes as oldOops (still need to be mapped)
         int oldOop= splObs.oldOopAt(Squeak.splOb_CompactClasses);
-        SqueakObject compactClassesArray= ((SqueakObject) oopMap.get(new Integer(oldOop)));
+        SqueakObject compactClassesArray= oopMap.get(new Integer(oldOop));
         Integer[] ccArray= new Integer[31];
-        for (int i= 0; i<31; i++) 
-        {
-            ccArray[i]= new Integer (compactClassesArray.oldOopAt(i)); 
+        for (int i= 0; i<31; i++) {
+            ccArray[i]= Integer.valueOf(compactClassesArray.oldOopAt(i)); 
         }
         return ccArray; 
     }
