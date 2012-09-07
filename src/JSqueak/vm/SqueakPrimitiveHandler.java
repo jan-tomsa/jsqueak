@@ -701,7 +701,7 @@ class SqueakPrimitiveHandler
     SqueakObject makeStString(String javaString) {
         byte[] byteString= javaString.getBytes();
         SqueakObject stString= vm.instantiateClass(vm.getSpecialObject(Squeak.splOb_ClassString),javaString.length());
-        System.arraycopy(byteString,0,stString.bits,0,byteString.length);
+        System.arraycopy(byteString,0,stString.getBits(),0,byteString.length);
         return stString; 
     }
 
@@ -750,11 +750,11 @@ class SqueakPrimitiveHandler
         if (array.format<6)   //pointers...   normal at:
             return array.pointers[index-1+info.ivarOffset];
         if (array.format<8) {  // words... 
-            int value= ((int[])array.bits)[index-1];
+            int value= ((int[])array.getBits())[index-1];
             return pos32BitIntFor(value);
         }
         if (array.format<12) { // bytes... 
-            int value= (((byte[])array.bits)[index-1]) & 0xFF;
+            int value= (((byte[])array.getBits())[index-1]) & 0xFF;
             if (info.convertChars) 
                 return charFromInt(value);
 			else
@@ -765,7 +765,7 @@ class SqueakPrimitiveHandler
         if (index-1-offset < 0) //reading bits as bytes
             throw PrimitiveFailed;
         
-        return SqueakVM.smallFromInt((((byte[])array.bits)[index-1-offset]) & 0xFF); 
+        return SqueakVM.smallFromInt((((byte[])array.getBits())[index-1-offset]) & 0xFF); 
     }
     
     SqueakObject charFromInt(int ascii) {
@@ -809,7 +809,7 @@ class SqueakPrimitiveHandler
             // words...
             intToPut= stackPos32BitValue(0);
 
-            ((int[])array.bits)[index-1]= intToPut;
+            ((int[])array.getBits())[index-1]= intToPut;
             return objToPut; 
         }
         // bytes...
@@ -839,7 +839,7 @@ class SqueakPrimitiveHandler
 
         if (array.format<8) {
             // bytes...
-            ((byte[])array.bits)[index-1]= (byte)intToPut;
+            ((byte[])array.getBits())[index-1]= (byte)intToPut;
             return objToPut; 
         }
         // methods (format>=12) must simulate Squeak's method indexing
@@ -847,7 +847,7 @@ class SqueakPrimitiveHandler
         if (index-1-offset < 0)
             throw PrimitiveFailed;   //writing lits as bytes 
 
-        ((byte[])array.bits)[index-1-offset]= (byte)intToPut;
+        ((byte[])array.getBits())[index-1-offset]= (byte)intToPut;
         return objToPut; 
     }
     
@@ -906,7 +906,7 @@ class SqueakPrimitiveHandler
             totalLength= dst.bitsSize();
             if ((dstPos < 0) || (dstPos + count) > totalLength)  //would go out of bounds
                 throw PrimitiveFailed;
-            System.arraycopy(src.bits, srcPos, dst.bits, dstPos, count);
+            System.arraycopy(src.getBits(), srcPos, dst.getBits(), dstPos, count);
             return dst; 
         }
     }

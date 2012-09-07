@@ -217,7 +217,7 @@ public class SqueakVM {
 		}
 		receiver = homeContext.getPointer(Squeak.CONTEXT_RECEIVER);
 		method = (SqueakObject) meth;
-		methodBytes = (byte[]) getMethod().bits;
+		methodBytes = (byte[]) getMethod().getBits();
 		pc = decodeSqueakPC(
 				ctxt.getPointerI(Squeak.CONTEXT_INSTRUCTION_POINTER), method);
 		if (getPc() < -1)
@@ -914,7 +914,7 @@ public class SqueakVM {
 		// newActiveContext:
 		homeContext = newContext;
 		method = newMethod;
-		methodBytes = (byte[]) getMethod().bits;
+		methodBytes = (byte[]) getMethod().getBits();
 		pc = newPC;
 		sp = newSP;
 		storeContextRegisters(); // not really necessary, I claim
@@ -1173,7 +1173,7 @@ public class SqueakVM {
 		System.err.println("depth= " + stackDepth() + "; top= "
 				+ printString(top()));
 		System.err.println("pc= " + getPc() + "; sp= " + getSp() + "; nextByte= "
-				+ (((byte[]) getMethod().bits)[getPc() + 1] & 0xff));
+				+ (((byte[]) getMethod().getBits())[getPc() + 1] & 0xff));
 		// if (byteCount==1764)
 		// byteCount= byteCount; // <-- break here
 	}
@@ -1268,7 +1268,7 @@ public class SqueakVM {
 			setMsb(getDepth() > 0);
 			if (getDepth() < 0)
 				setDepth(0 - getDepth());
-			Object maybeBytes = ((SqueakObject) bitsObject).bits;
+			Object maybeBytes = ((SqueakObject) bitsObject).getBits();
 			if (maybeBytes == null || maybeBytes instanceof byte[])
 				return false; // Happens with compressed bits
 			setBits((int[]) maybeBytes);
