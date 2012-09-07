@@ -1354,7 +1354,7 @@ class SqueakPrimitiveHandler
         SqueakObject arg= stackNonInteger(0);
         
         try { 
-        	image.bulkBecome(rcvr.pointers, arg.pointers); 
+        	image.bulkMutate(rcvr.pointers, arg.pointers); 
             return rcvr;    
         } catch (RuntimeException e) {
         	throw PrimitiveFailed;
@@ -1367,7 +1367,7 @@ class SqueakPrimitiveHandler
         SqueakObject arg= stackNonInteger(0);
         
         try {
-        	image.bulkBecomeTwoWay(rcvr.pointers, arg.pointers);
+        	image.bulkMutateTwoWay(rcvr.pointers, arg.pointers);
             return rcvr;    
         } catch (RuntimeException e) {
         	throw PrimitiveFailed;
