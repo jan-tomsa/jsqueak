@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.Hashtable;
 
 import JSqueak.Squeak;
-import JSqueak.util.HexUtils;
 import JSqueak.vm.SqueakObject;
 
 class SqueakImageReader {
@@ -67,8 +66,8 @@ class SqueakImageReader {
         return outgoing; 
     }
         
-	public Hashtable readObjects(SqueakImage objectRegistry) throws IOException {
-        Hashtable oopMap= new Hashtable(30000);
+	public Hashtable<Integer,SqueakObject> readObjects(SqueakImage objectRegistry) throws IOException {
+        Hashtable<Integer, SqueakObject> oopMap= new Hashtable<Integer, SqueakObject>(30000);
 		for (int i= 0; i<imageHeader.endOfMemory;) {
             int dataLength = 0;
             int classInt = 0;

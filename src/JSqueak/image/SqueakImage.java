@@ -326,9 +326,9 @@ public class SqueakImage
         imageHeader = reader.readImageHeader();
         
         // Read objects 
-        Hashtable oopMap = reader.readObjects(this);
+        Hashtable<Integer, SqueakObject> oopMap = reader.readObjects(this);
         
-        //Temp version of spl objs needed for makeCompactClassesArray; not a good object yet
+        //Temp version of special objects needed for makeCompactClassesArray; not a good object yet
         SqueakObject specialObjectsArrayOop = (SqueakObject)(oopMap.get(Integer.valueOf(imageHeader.specialObjectsOopInt)));
         int[] soaByteCode = (int[]) specialObjectsArrayOop.getBits();
         String soaByteCodeHex = HexUtils.translateRawData(soaByteCode);
@@ -354,14 +354,14 @@ public class SqueakImage
         System.out.println("Done installing at " + System.currentTimeMillis());
         monitor.logMessage("Done installing at " + System.currentTimeMillis());
         
-        //Proper version of spl objs -- it's a good object
-        setSpecialObjectsArray((SqueakObject)(oopMap.get(Integer.valueOf(imageHeader.specialObjectsOopInt))));
+        //Proper version of special objects -- it's a good object
+        setSpecialObjectsArray(oopMap.get(Integer.valueOf(imageHeader.specialObjectsOopInt)));
         otMaxOld= otMaxUsed; 
     }
 
     private Integer[] makeCompactClassesArray(Hashtable oopMap, SqueakObject splObs) 
     {
-        //Makes an aray of the compact classes as oldOops (still need to be mapped)
+        //Makes an array of the compact classes as oldOops (still need to be mapped)
         int oldOop= splObs.oldOopAt(Squeak.splOb_CompactClasses);
         SqueakObject compactClassesArray= ((SqueakObject) oopMap.get(new Integer(oldOop)));
         Integer[] ccArray= new Integer[31];
