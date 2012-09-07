@@ -343,8 +343,7 @@ public class SqueakImage
         monitor.setStatus("Installing");
         System.out.println("Start installs at " + System.currentTimeMillis());
         monitor.logMessage("Start installs at " + System.currentTimeMillis());
-        for (int i= 0; i<otMaxUsed; i++) 
-        {
+        for (int i= 0; i<otMaxUsed; i++) {
         	SqueakObject squeakObject = (SqueakObject) objectTable[i].get();
         	monitor.logMessage("Installing: "+squeakObject.getHash());
             // Don't need oldBaseAddr here**
