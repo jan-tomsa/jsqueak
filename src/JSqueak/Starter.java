@@ -63,7 +63,7 @@ public class Starter {
      */
     public static void main(String[] args) throws IOException, NullPointerException, java.lang.ArrayIndexOutOfBoundsException {
         monitor = new MonitorFrame();
-        SqueakVM.initSmallIntegerCache();
+        //SqueakVM.initSmallIntegerCache();
         SqueakImage img = args.length > 0 ? locateSavedImageAndLoadIt( args[0] )
                                           : locateStartableImageAndLoadIt();
         //monitorFrame.logMessage(MINI_IMAGE_FILE_NAME);

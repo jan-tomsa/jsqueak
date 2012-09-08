@@ -78,24 +78,13 @@ public class SqueakVM {
     private boolean deferDisplayUpdates;
     private int pendingFinalizationSignals;
     
-    // 31-bit small Integers, range:
-    public static final int MIN_SMALL_INT= -0x40000000;
-    public static final int MAX_SMALL_INT=  0x3FFFFFFF;
+	// 31-bit small Integers, range:
+	public static final int MAX_SMALL_INT=  0x3FFFFFFF; 
+	public static final int MIN_SMALL_INT= -0x40000000;
     public static final int NON_SMALL_INT= -0x50000000; //non-small and neg(so non pos32 too)
     public static final int MILLISECOND_CLOCK_MASK= MAX_SMALL_INT>>1; //keeps ms logic in small int range
     
-    public static final int MIN_CACHED_INT= -2000;
-    public static final int MAX_CACHED_INT=  4000;
-    
-    static Integer[] cachedInts; // reusable SmallIntegers save space, reduce GC traffic
-    
-	public static void initSmallIntegerCache() {
-		cachedInts = new Integer[MAX_CACHED_INT - MIN_CACHED_INT + 1];
-		for (int i = MIN_CACHED_INT; i <= MAX_CACHED_INT; i++)
-			cachedInts[i - MIN_CACHED_INT] = new Integer(i);
-	}
-    
-	int byteCount= 0;
+    int byteCount= 0;
     FileInputStream byteTracker;
     int nRecycledContexts= 0;
     int nAllocatedContexts= 0;
@@ -103,7 +92,6 @@ public class SqueakVM {
     Object[] stackedSelectors= new Object[100];
 	private Monitor monitor;
 	private MethodCache methodCache;
-    
     
 	public SqueakVM(SqueakImage anImage, Monitor monitor) {
 		this.monitor = monitor; 
@@ -244,11 +232,10 @@ public class SqueakVM {
 	}
     
 	public static Integer smallFromInt(int raw) {
-		if (raw >= MIN_CACHED_INT && raw <= MAX_CACHED_INT)
-			return cachedInts[raw - MIN_CACHED_INT];
-		if (raw >= MIN_SMALL_INT && raw <= MAX_SMALL_INT)
-			return new Integer(raw);
-		return null;
+		if (canBeSmallInt(raw))
+			return Integer.valueOf(raw);
+		else
+			return null;
 	}
     
     public static boolean isSmallInt(Object obj) {
