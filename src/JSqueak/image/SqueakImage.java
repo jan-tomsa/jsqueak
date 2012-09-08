@@ -235,7 +235,7 @@ public class SqueakImage
 
     public int spaceLeft() 
     {
-        return (int)Math.min(Runtime.getRuntime().freeMemory(),(long)SqueakVM.maxSmallInt); 
+        return (int)Math.min(Runtime.getRuntime().freeMemory(),(long)SqueakVM.MAX_SMALL_INT); 
     }
 
     public int fullGC() 

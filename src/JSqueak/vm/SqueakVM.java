@@ -68,7 +68,7 @@ public class SqueakVM {
     private int interruptCheckCounterFeedBackReset;
     private int interruptChecksEveryNms;
     private int nextPollTick;
-            private int nextWakeupTick;
+    private int nextWakeupTick;
     private int lastTick;
     private int interruptKeycode;
     private boolean interruptPending;
@@ -79,20 +79,20 @@ public class SqueakVM {
     private int pendingFinalizationSignals;
     
     // 31-bit small Integers, range:
-    public static int minSmallInt= -0x40000000;
-    public static int maxSmallInt=  0x3FFFFFFF;
-    public static int nonSmallInt= -0x50000000; //non-small and neg(so non pos32 too)
-    public static int millisecondClockMask= maxSmallInt>>1; //keeps ms logic in small int range
+    public static final int MIN_SMALL_INT= -0x40000000;
+    public static final int MAX_SMALL_INT=  0x3FFFFFFF;
+    public static final int NON_SMALL_INT= -0x50000000; //non-small and neg(so non pos32 too)
+    public static final int MILLISECOND_CLOCK_MASK= MAX_SMALL_INT>>1; //keeps ms logic in small int range
     
-    public static int minCachedInt= -2000;
-    public static int maxCachedInt=  4000;
+    public static final int MIN_CACHED_INT= -2000;
+    public static final int MAX_CACHED_INT=  4000;
     
     static Integer[] cachedInts; // reusable SmallIntegers save space, reduce GC traffic
     
 	public static void initSmallIntegerCache() {
-		cachedInts = new Integer[maxCachedInt - minCachedInt + 1];
-		for (int i = minCachedInt; i <= maxCachedInt; i++)
-			cachedInts[i - minCachedInt] = new Integer(i);
+		cachedInts = new Integer[MAX_CACHED_INT - MIN_CACHED_INT + 1];
+		for (int i = MIN_CACHED_INT; i <= MAX_CACHED_INT; i++)
+			cachedInts[i - MIN_CACHED_INT] = new Integer(i);
 	}
     
 	class MethodCacheEntry {
@@ -259,13 +259,13 @@ public class SqueakVM {
         
     //SmallIntegers are stored as Java (boxed)Integers
 	public static boolean canBeSmallInt(int anInt) {
-		return (anInt >= minSmallInt) && (anInt <= maxSmallInt);
+		return (anInt >= MIN_SMALL_INT) && (anInt <= MAX_SMALL_INT);
 	}
     
 	public static Integer smallFromInt(int raw) {
-		if (raw >= minCachedInt && raw <= maxCachedInt)
-			return cachedInts[raw - minCachedInt];
-		if (raw >= minSmallInt && raw <= maxSmallInt)
+		if (raw >= MIN_CACHED_INT && raw <= MAX_CACHED_INT)
+			return cachedInts[raw - MIN_CACHED_INT];
+		if (raw >= MIN_SMALL_INT && raw <= MAX_SMALL_INT)
 			return new Integer(raw);
 		return null;
 	}
@@ -500,7 +500,7 @@ public class SqueakVM {
         if (interruptCheckCounter-- > 0) 
             return; //only really check every 100 times or so
         //Mask so same wrap as primitiveMillisecondClock
-        now= (int) (System.currentTimeMillis() & (long)millisecondClockMask);
+        now= (int) (System.currentTimeMillis() & (long)MILLISECOND_CLOCK_MASK);
         if (now < lastTick) 
         {
             //millisecond clock wrapped"
@@ -718,23 +718,23 @@ public class SqueakVM {
 	public static int div(int rcvr, int arg) {
 		// do this without floats asap
 		if (arg == 0)
-			return nonSmallInt; // fail if divide by zero
+			return NON_SMALL_INT; // fail if divide by zero
 		return (int) Math.floor((double) rcvr / arg);
 	}
 
 	public static int quickDivide(int rcvr, int arg) {
 		// only handles exact case
 		if (arg == 0)
-			return nonSmallInt; // fail if divide by zero
+			return NON_SMALL_INT; // fail if divide by zero
 		int result = rcvr / arg;
 		if (result * arg == rcvr)
 			return result;
-		return nonSmallInt; // fail if result is not exact
+		return NON_SMALL_INT; // fail if result is not exact
 	}
 
 	public static int mod(int rcvr, int arg) {
 		if (arg == 0)
-			return nonSmallInt; // fail if divide by zero
+			return NON_SMALL_INT; // fail if divide by zero
 		return rcvr - div(rcvr, arg) * arg;
 	}
 
@@ -745,7 +745,7 @@ public class SqueakVM {
 			return product;
 		if ((product / multiplier) == multiplicand)
 			return product;
-		return nonSmallInt; // non-small result will cause failure
+		return NON_SMALL_INT; // non-small result will cause failure
 	}
 
 	public static int safeShift(int bitsToShift, int shiftCount) {
@@ -755,7 +755,7 @@ public class SqueakVM {
 		int shifted = bitsToShift << shiftCount;
 		if ((shifted >>> shiftCount) == bitsToShift)
 			return shifted;
-		return nonSmallInt; // non-small result will cause failure
+		return NON_SMALL_INT; // non-small result will cause failure
 	}
 
 	public void send(SqueakObject selector, int argCount, boolean doSuper) {

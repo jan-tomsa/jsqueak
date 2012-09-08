@@ -1192,7 +1192,7 @@ class SqueakPrimitiveHandler
         //Note that the millisecond clock wraps around periodically.
         //The range is limited to SmallInteger maxVal / 2 to allow
         //delays of up to that length without overflowing a SmallInteger."
-        return SqueakVM.smallFromInt(((int) (System.currentTimeMillis() & (long)(SqueakVM.maxSmallInt>>1)))); 
+        return SqueakVM.smallFromInt(((int) (System.currentTimeMillis() & (long)(SqueakVM.MAX_SMALL_INT>>1)))); 
     }
     
     private void beDisplay(SqueakObject displayObj) {
