@@ -1196,7 +1196,7 @@ class SqueakPrimitiveHandler
     }
     
     private void beDisplay(SqueakObject displayObj) {
-        SqueakVM.FormCache disp= vm.newFormCache(displayObj);
+        FormCache disp= vm.newFormCache(displayObj);
         if (disp.getSqueakForm()==null) 
             throw PrimitiveFailed;
         vm.setSpecialObject(Squeak.splOb_TheDisplay,displayObj);
@@ -1241,7 +1241,7 @@ class SqueakPrimitiveHandler
             cursorObj= stackNonInteger(1);
             maskObj= stackNonInteger(0); 
         }
-        SqueakVM.FormCache cursorForm= vm.newFormCache(cursorObj);
+        FormCache cursorForm= vm.newFormCache(cursorObj);
         if ( cursorForm.getSqueakForm() == null ) 
             throw PrimitiveFailed;
         //Following code for offset is not yet used...
@@ -1306,11 +1306,9 @@ class SqueakPrimitiveHandler
         int word;
         int ix1= rect.x/depth/32;
         int ix2= (rect.x+rect.width-1)/depth/32 + 1;
-        for (int y=rect.y; y<rect.y+rect.height; y++) 
-        {
+        for (int y=rect.y; y<rect.y+rect.height; y++) {
             int iy= y*raster;
-            for(int ix=ix1; ix<ix2; ix++) 
-            {
+            for(int ix=ix1; ix<ix2; ix++) {
                 word= (words[iy+ix])^BWMask;
                 for(int j=0; j<4; j++)
                     bytes[((iy+ix)*4)+j]= (byte)((word>>>((3-j)*8))&255); 

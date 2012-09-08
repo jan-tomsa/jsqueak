@@ -28,7 +28,7 @@ import java.awt.Rectangle;
 import JSqueak.Squeak;
 import JSqueak.vm.SqueakObject;
 import JSqueak.vm.SqueakVM;
-import JSqueak.vm.SqueakVM.FormCache;
+import JSqueak.vm.FormCache;
 
 /**
  * @author Dan Ingalls
@@ -40,7 +40,7 @@ public class BitBlt
     private SqueakVM vm;
         
     private Object destForm;
-    private SqueakVM.FormCache dest;
+    private FormCache dest;
     private int destX, destY, width, height;
     private int destIndex;
     private int destDelta;
@@ -48,7 +48,7 @@ public class BitBlt
 
     private boolean noSource;
     private Object sourceForm;
-    SqueakVM.FormCache source;
+    FormCache source;
     private int sourceX, sourceY;
     private int sourceIndex;
     private int sourceDelta;
@@ -881,11 +881,11 @@ public class BitBlt
 		this.combinationRule = combinationRule;
 	}
 
-	public SqueakVM.FormCache getDest() {
+	public FormCache getDest() {
 		return dest;
 	}
 
-	public void setDest(SqueakVM.FormCache dest) {
+	public void setDest(FormCache dest) {
 		this.dest = dest;
 	}
 
