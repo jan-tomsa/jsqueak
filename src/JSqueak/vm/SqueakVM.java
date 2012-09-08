@@ -95,40 +95,21 @@ public class SqueakVM {
 			cachedInts[i - MIN_CACHED_INT] = new Integer(i);
 	}
     
-	class MethodCacheEntry {
-		SqueakObject lkupClass;
-		SqueakObject selector;
-		SqueakObject method;
-		int primIndex;
-		int tempCount;
-	}
-    
-    static int methodCacheSize= 1024; // must be power of two
-    static int methodCacheMask= methodCacheSize-1; // so this is a mask
-    static int randomish= 0;
-    
-    MethodCacheEntry[] methodCache= new MethodCacheEntry[methodCacheSize];
-    
-	void initMethodCache() {
-		methodCache = new MethodCacheEntry[methodCacheSize];
-		for (int i = 0; i < methodCacheSize; i++) {
-			methodCache[i] = new MethodCacheEntry();
-		}
-	}
-
-    int byteCount= 0;
+	int byteCount= 0;
     FileInputStream byteTracker;
     int nRecycledContexts= 0;
     int nAllocatedContexts= 0;
     Object[] stackedReceivers= new Object[100];
     Object[] stackedSelectors= new Object[100];
 	private Monitor monitor;
+	private MethodCache methodCache;
     
     
 	public SqueakVM(SqueakImage anImage, Monitor monitor) {
 		this.monitor = monitor; 
 		monitor.logMessage("Creating VM");
 		// canonical creation
+		this.methodCache = new MethodCache();
 		setImage(anImage);
 		getImage().bindVM(this);
 		primHandler = new SqueakPrimitiveHandler(this);
@@ -140,7 +121,7 @@ public class SqueakVM {
 	public void clearCaches() {
 		// Some time store null above SP in contexts
 		primHandler.clearAtCache();
-		clearMethodCache();
+		methodCache.clearMethodCache();
 		freeContexts = nilObj;
 		freeLargeContexts = nilObj;
 	}
@@ -184,7 +165,7 @@ public class SqueakVM {
 		freeContexts = nilObj;
 		freeLargeContexts = nilObj;
 		setReclaimableContextCount(0);
-		initMethodCache();
+		methodCache.initMethodCache();
 	}
 
 	private void loadInitialContext() {
@@ -773,7 +754,7 @@ public class SqueakVM {
 			lookupClass = lookupClass.getPointerNI(Squeak.CLASS_SUPERCLASS);
 		}
 		int priorSP = getSp(); // to check if DNU changes argCount
-		MethodCacheEntry entry = findSelectorInClass(selector, argCount,
+		MethodCache.MethodCacheEntry entry = findSelectorInClass(selector, argCount,
 				lookupClass);
 		newMethod = entry.method;
 		primIndex = entry.primIndex;
@@ -786,10 +767,10 @@ public class SqueakVM {
 				primIndex);
 	} // DNU may affest argCount
 
-	public MethodCacheEntry findSelectorInClass(SqueakObject selector,
+	public MethodCache.MethodCacheEntry findSelectorInClass(SqueakObject selector,
 			int argCount, SqueakObject startingClass) {
-		MethodCacheEntry cacheEntry = findMethodCacheEntry(selector,
-				startingClass);
+		MethodCache.MethodCacheEntry cacheEntry 
+				= methodCache.findMethodCacheEntry(selector, startingClass);
 		if (cacheEntry.method != null)
 			return cacheEntry; // Found it in the method cache
 		SqueakObject currentClass = startingClass;
@@ -815,7 +796,7 @@ public class SqueakVM {
 			currentClass = currentClass.getPointerNI(Squeak.CLASS_SUPERCLASS);
 		}
 
-		// Cound not find a normal message -- send #doesNotUnderstand:
+		// Could not find a normal message -- send #doesNotUnderstand:
 		// if (printString(selector).equals("zork"))
 		// System.err.println(printString(selector));
 		SqueakObject dnuSel = getSpecialObject(Squeak.splOb_SelectorDoesNotUnderstand);
@@ -986,12 +967,12 @@ public class SqueakVM {
 		// work
 		int trueArgCount = argCount - 1;
 		int selectorIndex = getSp() - trueArgCount;
-		Object[] stack = getActiveContext().pointers; // slide eveything down...
+		Object[] stack = getActiveContext().pointers; // slide everything down...
 		System.arraycopy(stack, selectorIndex + 1, stack, selectorIndex,
 				trueArgCount);
 		sp--; // adjust sp accordingly
-		MethodCacheEntry entry = findSelectorInClass(selector, trueArgCount,
-				getClass(rcvr));
+		MethodCache.MethodCacheEntry entry 
+				= findSelectorInClass(selector, trueArgCount, getClass(rcvr));
 		SqueakObject newMethod = entry.method;
 		executeNewMethod(rcvr, newMethod, newMethod.methodNumArgs(),
 				entry.primIndex);
@@ -1010,8 +991,8 @@ public class SqueakVM {
 		System.arraycopy(args.pointers, 0, getActiveContext().pointers, getSp() - 1,
 				trueArgCount);
 		sp = sp - 2 + trueArgCount; // pop selector and array then push args
-		MethodCacheEntry entry = findSelectorInClass(selector, trueArgCount,
-				lookupClass);
+		MethodCache.MethodCacheEntry entry 
+				= findSelectorInClass(selector, trueArgCount, lookupClass);
 		SqueakObject newMethod = entry.method;
 		if (newMethod.methodNumArgs() != trueArgCount)
 			return false;
@@ -1096,69 +1077,6 @@ public class SqueakVM {
 		return new SqueakObject(getImage(), theClass, indexableSize, nilObj);
 	}
     
-	public boolean clearMethodCache() {
-		// clear method cache entirely (prim 89)
-		for (int i = 0; i < methodCacheSize; i++) {
-			methodCache[i].selector = null; // mark it free
-			methodCache[i].method = null; // release the method
-		}
-		return true;
-	}
-    
-	public boolean flushMethodCacheForSelector(SqueakObject selector) {
-		// clear cache entries for selector (prim 119)
-		for (int i = 0; i < methodCacheSize; i++) {
-			if (methodCache[i].selector == selector) {
-				methodCache[i].selector = null; // mark it free
-				methodCache[i].method = null; // release the method
-			}
-		}
-		return true;
-	}
-
-	public boolean flushMethodCacheForMethod(SqueakObject method) {
-		// clear cache entries for selector (prim 116)
-		for (int i = 0; i < methodCacheSize; i++) {
-			if (methodCache[i].method == method) {
-				methodCache[i].selector = null; // mark it free
-				methodCache[i].method = null; // release the method
-			}
-		}
-		return true;
-	}
-
-	public MethodCacheEntry findMethodCacheEntry(SqueakObject selector,
-			SqueakObject lkupClass) {
-		// Probe the cache, and return the matching entry if found
-		// Otherwise return one that can be used (selector and class set) with
-		// method= null.
-		// Initial probe is class xor selector, reprobe delta is selector
-		// We don not try to optimize probe time -- all are equally 'fast'
-		// compared to lookup
-		// Instead we randomize the reprobe so two or three very active
-		// conflicting entries
-		// will not keep dislodging each other
-		MethodCacheEntry entry;
-		int nProbes = 4;
-		randomish = (randomish + 1) % nProbes;
-		int firstProbe = (selector.getHash() ^ lkupClass.getHash()) & methodCacheMask;
-		int probe = firstProbe;
-		for (int i = 0; i < 4; i++) {
-			// 4 reprobes for now
-			entry = methodCache[probe];
-			if (entry.selector == selector && entry.lkupClass == lkupClass)
-				return entry;
-			if (i == randomish)
-				firstProbe = probe;
-			probe = (probe + selector.getHash()) & methodCacheMask;
-		}
-		entry = methodCache[firstProbe];
-		entry.lkupClass = lkupClass;
-		entry.selector = selector;
-		entry.method = null;
-		return entry;
-	}
-
 	public void printContext() {
 		if ((byteCount % 100) == 0 && stackDepth() > 100) {
 			System.err.println("******Stack depth over 100******");
@@ -1306,5 +1224,17 @@ public class SqueakVM {
 
 	public boolean isScreenEvent() {
 		return screenEvent;
+	}
+
+	public boolean clearMethodCache() {
+		return methodCache.clearMethodCache();
+	}
+
+	public boolean flushMethodCacheForMethod(SqueakObject method) {
+		return methodCache.flushMethodCacheForMethod(method);
+	}
+
+	public boolean flushMethodCacheForSelector(SqueakObject selector) {
+		return methodCache.flushMethodCacheForSelector(selector);
 	}
 }
