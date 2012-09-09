@@ -36,7 +36,8 @@ import JSqueak.monitor.Monitor;
  * The virtual machinery for executing Squeak bytecode.
  */
 public class SqueakVM {
-    private static final int MAX_COUNTER = 100000;
+    private static final int MAX_STACK_DEPTH = 100;
+	private static final int MAX_COUNTER = 100000;
 	// static state:
     private SqueakImage image;
     SqueakPrimitiveHandler primHandler;
@@ -88,8 +89,8 @@ public class SqueakVM {
     FileInputStream byteTracker;
     int nRecycledContexts= 0;
     int nAllocatedContexts= 0;
-    Object[] stackedReceivers= new Object[100];
-    Object[] stackedSelectors= new Object[100];
+    Object[] stackedReceivers= new Object[MAX_STACK_DEPTH];
+    Object[] stackedSelectors= new Object[MAX_STACK_DEPTH];
 	private Monitor monitor;
 	private MethodCache methodCache;
     
@@ -752,7 +753,7 @@ public class SqueakVM {
 		}
 		executeNewMethod(newRcvr, newMethod, argCount + (getSp() - priorSP),
 				primIndex);
-	} // DNU may affest argCount
+	} // DNU may affect argCount
 
 	public MethodCache.MethodCacheEntry findSelectorInClass(SqueakObject selector,
 			int argCount, SqueakObject startingClass) {
@@ -1065,8 +1066,8 @@ public class SqueakVM {
 	}
     
 	public void printContext() {
-		if ((byteCount % 100) == 0 && stackDepth() > 100) {
-			System.err.println("******Stack depth over 100******");
+		if ((byteCount % MAX_STACK_DEPTH) == 0 && stackDepth() > MAX_STACK_DEPTH) {
+			System.err.println("******Stack depth over " + MAX_STACK_DEPTH + "******");
 			dumpStack();
 			// byteCount= byteCount; // <-- break here
 		}

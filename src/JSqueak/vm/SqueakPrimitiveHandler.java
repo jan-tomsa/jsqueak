@@ -57,22 +57,14 @@ class SqueakPrimitiveHandler
     private int displayRaster;
     private byte[] displayBitmapInBytes;
     private int BWMask= 0;
+    AtCache atCache;
     
-    
-    // Its purpose of the at-cache is to allow fast (bytecode) access to at/atput code
-    // without having to check whether this object has overridden at, etc.
-    private final int atCacheSize= 32; // must be power of 2
-    private final int atCacheMask= atCacheSize-1; //...so this is a mask
-    
-    private AtCacheInfo[] atCache;
-    private AtCacheInfo[] atPutCache;
-    private AtCacheInfo nonCachedInfo;
     
     SqueakPrimitiveHandler(SqueakVM theVM) {
         vm= theVM;
         image= vm.getImage();
         bitbltTable= new BitBlt(vm);
-        initAtCache(); 
+        atCache = new AtCache(vm, this); 
     }
     
     /**
@@ -81,60 +73,6 @@ class SqueakPrimitiveHandler
      */
     private static class PrimitiveFailedException extends RuntimeException {}
 
-    private static class AtCacheInfo {
-        SqueakObject array;
-        int size;
-        int ivarOffset;
-        boolean convertChars; 
-    }
-    
-    private void initAtCache() {
-        atCache= new AtCacheInfo[atCacheSize];
-        atPutCache= new AtCacheInfo[atCacheSize];
-        nonCachedInfo= new AtCacheInfo();
-        for(int i= 0; i<atCacheSize; i++)
-        {
-            atCache[i]= new AtCacheInfo();
-            atPutCache[i]= new AtCacheInfo();
-        } 
-    }
-    
-    /**
-     * Clear at-cache pointers (prior to GC). 
-     */
-    void clearAtCache() {
-        for(int i= 0; i<atCacheSize; i++) {
-            atCache[i].array= null;
-            atPutCache[i].array= null;
-        }
-    }
-    
-    private AtCacheInfo makeCacheInfo(AtCacheInfo[] atOrPutCache, Object atOrPutSelector, SqueakObject array, boolean convertChars, boolean includeInstVars) {
-        // Make up an info object and store it in the atCache or the atPutCache.
-        // If it's not cacheable (not a non-super send of at: or at:put:)
-        // then return the info in nonCachedInfo.
-        // Note that info for objectAt (includeInstVars) will have
-        // a zero ivarOffset, and a size that includes the extra instVars
-        AtCacheInfo info;
-        boolean cacheable= (vm.getVerifyAtSelector() == atOrPutSelector) //is at or atPut
-            && (vm.getVerifyAtClass() == array.getSqClass())         //not a super send
-            && (array.getFormat()==3 && vm.isContext(array));        //not a context (size can change)
-        if (cacheable) 
-            info= atOrPutCache[array.hashCode() & atCacheMask];
-        else
-            info= nonCachedInfo;
-        info.array= array;
-        info.convertChars= convertChars; 
-        if (includeInstVars) {
-            info.size= Math.max(0,indexableSize(array)) + array.instSize();
-            info.ivarOffset= 0; 
-        } else {
-            info.size= indexableSize(array);
-            info.ivarOffset= (array.getFormat()<6) ? array.instSize() : 0; 
-        }
-        return info; 
-    }
-    
     // Quick Sends from inner Interpreter
     boolean quickSendOther(Object rcvr, int lobits) {
         // QuickSendOther returns true if it succeeds
@@ -722,10 +660,10 @@ class SqueakPrimitiveHandler
         SqueakObject array = stackNonInteger(1);
         int index= stackPos32BitValue(0); //note non-int returns zero
 
-        AtCacheInfo info;
+        AtCache.AtCacheInfo info;
         if (cameFromAtBytecode) {
             // fast entry checks cache
-            info= atCache[array.hashCode() & atCacheMask];
+            info= atCache.cache()[array.hashCode() & AtCache.atCacheMask];
             if (info.array != array)
                 throw PrimitiveFailed;
         } else {
@@ -740,7 +678,7 @@ class SqueakPrimitiveHandler
                 
                 throw PrimitiveFailed;
             }
-            info= makeCacheInfo(atCache, vm.getSpecialSelector(32), array, convertChars, includeInstVars); 
+            info= atCache.makeCacheInfo(atCache.cache(), vm.getSpecialSelector(32), array, convertChars, includeInstVars); 
         }
         if (index<1 || index>info.size)
             throw PrimitiveFailed;
@@ -780,15 +718,15 @@ class SqueakPrimitiveHandler
         SqueakObject array = stackNonInteger(2);
         int index= stackPos32BitValue(1); //note non-int returns zero
 
-        AtCacheInfo info;
+        AtCache.AtCacheInfo info;
         if (cameFromAtBytecode) {
             // fast entry checks cache
-            info= atPutCache[array.hashCode() & atCacheMask];
+            info= atCache.atPutCache()[array.hashCode() & AtCache.atCacheMask];
             if (info.array != array)
                 throw PrimitiveFailed;
         } else {
             // slow entry installs in cache if appropriate
-            info= makeCacheInfo(atPutCache, vm.getSpecialSelector(34), array, convertChars, includeInstVars); 
+            info= atCache.makeCacheInfo(atCache.atPutCache(), vm.getSpecialSelector(34), array, convertChars, includeInstVars); 
         }
         if (index<1 || index>info.size)
             throw PrimitiveFailed;
@@ -852,7 +790,7 @@ class SqueakPrimitiveHandler
     }
     
     // FIXME: is this the same as SqueakObject.instSize() ?
-    private int indexableSize(Object obj) {
+    int indexableSize(Object obj) {
         if (SqueakVM.isSmallInt(obj)) 
             return -1; // -1 means not indexable
         SqueakObject sqObj= (SqueakObject) obj;
@@ -1420,4 +1358,8 @@ class SqueakPrimitiveHandler
     Object stackReceiver( int argCount ) {
         return vm.stackValue( argCount ); 
     }
+
+	public void clearAtCache() {
+		atCache.clearAtCache();
+	}
 }
