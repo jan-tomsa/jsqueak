@@ -187,7 +187,7 @@ public class SqueakVM {
 		}
 		receiver = homeContext.getPointer(Squeak.CONTEXT_RECEIVER);
 		method = (SqueakObject) meth;
-		methodBytes = (byte[]) getMethod().getBits();
+		methodBytes = getMethod().getBitsAsMethodBytes();
 		pc = decodeSqueakPC(
 				ctxt.getPointerI(Squeak.CONTEXT_INSTRUCTION_POINTER), method);
 		if (getPc() < -1)
@@ -305,49 +305,50 @@ public class SqueakVM {
     	long masterCounter = 0;  
     	long counter = MAX_COUNTER;
     	monitor.logMessage("Entered the main RUN LOOP");
-	    int b, b2;
+	    int b2;
         while(true) {
             //...Here's the basic evaluator loop...'
             //        printContext();
             //        byteCount++;
             //        int b= nextByte(); 
-        	counter--;
+        	/*counter--;
         	if (counter < 0) {
         		counter = MAX_COUNTER;
         		masterCounter++;
         		monitor.setStatus( Long.toString(masterCounter) );
-        	}
-        	b= methodBytes[++pc] & 0xff;
-            switch (b) { /* The Main Bytecode Dispatch Loop */ 
+        	}*/
+        	int byteCode= methodBytes[++pc] & 0xff;
+        	//monitor.logMessage("Processing instruction: "+byteCode);
+            switch (byteCode) { /* The Main Bytecode Dispatch Loop */ 
               // load receiver variable
               case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7: 
               case 8: case 9: case 10: case 11: case 12: case 13: case 14: case 15: 
-                  push(((SqueakObject)receiver).getPointer(b&0xF)); break;
+                  push(((SqueakObject)receiver).getPointer(byteCode&0xF)); break;
       
               // load temporary variable
               case 16: case 17: case 18: case 19: case 20: case 21: case 22: case 23: 
               case 24: case 25: case 26: case 27: case 28: case 29: case 30: case 31: 
-                  push(homeContext.getPointer(Squeak.CONTEXT_TEMP_FRAME_START+(b&0xF))); break;
+                  push(homeContext.getPointer(Squeak.CONTEXT_TEMP_FRAME_START+(byteCode&0xF))); break;
       
               // loadLiteral
               case 32: case 33: case 34: case 35: case 36: case 37: case 38: case 39: 
               case 40: case 41: case 42: case 43: case 44: case 45: case 46: case 47: 
               case 48: case 49: case 50: case 51: case 52: case 53: case 54: case 55: 
               case 56: case 57: case 58: case 59: case 60: case 61: case 62: case 63: 
-                  push(getMethod().methodGetLiteral(b&0x1F)); break;
+                  push(getMethod().methodGetLiteral(byteCode&0x1F)); break;
       
               // loadLiteralIndirect
               case 64: case 65: case 66: case 67: case 68: case 69: case 70: case 71: 
               case 72: case 73: case 74: case 75: case 76: case 77: case 78: case 79: 
               case 80: case 81: case 82: case 83: case 84: case 85: case 86: case 87: 
               case 88: case 89: case 90: case 91: case 92: case 93: case 94: case 95: 
-                  push(((SqueakObject)getMethod().methodGetLiteral(b&0x1F)).getPointer(Squeak.Assn_value)); break;
+                  push(((SqueakObject)getMethod().methodGetLiteral(byteCode&0x1F)).getPointer(Squeak.Assn_value)); break;
       
               // storeAndPop rcvr, temp
               case 96: case 97: case 98: case 99: case 100: case 101: case 102: case 103: 
-                  ((SqueakObject)receiver).setPointer(b&7,pop()); break;
+                  ((SqueakObject)receiver).setPointer(byteCode&7,pop()); break;
               case 104: case 105: case 106: case 107: case 108: case 109: case 110: case 111: 
-                  homeContext.setPointer(Squeak.CONTEXT_TEMP_FRAME_START+(b&7),pop()); break;
+                  homeContext.setPointer(Squeak.CONTEXT_TEMP_FRAME_START+(byteCode&7),pop()); break;
       
               // Quick push constant
               case 112: push(receiver); break;
@@ -391,73 +392,73 @@ public class SqueakVM {
   
               // Short jmp
               case 144: case 145: case 146: case 147: case 148: case 149: case 150: case 151: 
-            	    pc+= (b&7)+1; break;
+            	    pc+= (byteCode&7)+1; break;
               // Short bfp
               case 152: case 153: case 154: case 155: case 156: case 157: case 158: case 159: 
-                  jumpif (false,(b&7)+1); break;
+                  jumpif (false,(byteCode&7)+1); break;
               // Long jump, forward and back
               case 160: case 161: case 162: case 163: case 164: case 165: case 166: case 167: 
                   b2=nextByte();
-                  pc+= (((b&7)-4)*256 + b2);
-                  if ((b&7)<4) checkForInterrupts();  //check on backward jumps (loops)
+                  pc+= (((byteCode&7)-4)*256 + b2);
+                  if ((byteCode&7)<4) checkForInterrupts();  //check on backward jumps (loops)
                   break;
               // Long btp
               case 168: case 169: case 170: case 171:
-                  jumpif (true,(b&3)*256 + nextByte()); break;
+                  jumpif (true,(byteCode&3)*256 + nextByte()); break;
               // Long bfp
               case 172: case 173: case 174: case 175: 
-                  jumpif (false,(b&3)*256 + nextByte()); break;
+                  jumpif (false,(byteCode&3)*256 + nextByte()); break;
   
               // Arithmetic Ops... + - < > <= >= = ~=    * / \ @ lshift: lxor: land: lor:
               case 176: setSuccess(true);
-                  if (!pop2AndPushIntResult(stackInteger(1)+stackInteger(0))) sendSpecial(b&0xF); break;   // PLUS +
+                  if (!pop2AndPushIntResult(stackInteger(1)+stackInteger(0))) sendSpecial(byteCode&0xF); break;   // PLUS +
               case 177: setSuccess(true);
-                  if (!pop2AndPushIntResult(stackInteger(1)-stackInteger(0))) sendSpecial(b&0xF); break;   // PLUS +
+                  if (!pop2AndPushIntResult(stackInteger(1)-stackInteger(0))) sendSpecial(byteCode&0xF); break;   // PLUS +
               case 178: setSuccess(true);
-                  if (!pushBoolAndPeek(stackInteger(1) < stackInteger(0))) sendSpecial(b&0xF); break;  // LESS <
+                  if (!pushBoolAndPeek(stackInteger(1) < stackInteger(0))) sendSpecial(byteCode&0xF); break;  // LESS <
               case 179: setSuccess(true);
-                  if (!pushBoolAndPeek(stackInteger(1) > stackInteger(0))) sendSpecial(b&0xF); break;  // GRTR >
+                  if (!pushBoolAndPeek(stackInteger(1) > stackInteger(0))) sendSpecial(byteCode&0xF); break;  // GRTR >
               case 180: setSuccess(true);
-                  if (!pushBoolAndPeek(stackInteger(1) <= stackInteger(0)))  sendSpecial(b&0xF); break;  // LEQ <=
+                  if (!pushBoolAndPeek(stackInteger(1) <= stackInteger(0)))  sendSpecial(byteCode&0xF); break;  // LEQ <=
               case 181: setSuccess(true);
-                  if (!pushBoolAndPeek(stackInteger(1) >= stackInteger(0)))  sendSpecial(b&0xF); break;  // GEQ >=
+                  if (!pushBoolAndPeek(stackInteger(1) >= stackInteger(0)))  sendSpecial(byteCode&0xF); break;  // GEQ >=
               case 182: setSuccess(true);
-                  if (!pushBoolAndPeek(stackInteger(1) == stackInteger(0)))  sendSpecial(b&0xF); break;  // EQU =
+                  if (!pushBoolAndPeek(stackInteger(1) == stackInteger(0)))  sendSpecial(byteCode&0xF); break;  // EQU =
               case 183: setSuccess(true);
-                  if (!pushBoolAndPeek(stackInteger(1) != stackInteger(0)))  sendSpecial(b&0xF); break;  // NEQ ~=
+                  if (!pushBoolAndPeek(stackInteger(1) != stackInteger(0)))  sendSpecial(byteCode&0xF); break;  // NEQ ~=
               case 184: setSuccess(true);
-                  if (!pop2AndPushIntResult(safeMultiply(stackInteger(1),stackInteger(0)))) sendSpecial(b&0xF); break;  // TIMES *
+                  if (!pop2AndPushIntResult(safeMultiply(stackInteger(1),stackInteger(0)))) sendSpecial(byteCode&0xF); break;  // TIMES *
               case 185: setSuccess(true);
-                  if (!pop2AndPushIntResult(quickDivide(stackInteger(1),stackInteger(0)))) sendSpecial(b&0xF); break;  // Divide /
+                  if (!pop2AndPushIntResult(quickDivide(stackInteger(1),stackInteger(0)))) sendSpecial(byteCode&0xF); break;  // Divide /
               case 186: setSuccess(true);
-                  if (!pop2AndPushIntResult(mod(stackInteger(1),stackInteger(0)))) sendSpecial(b&0xF); break;  // MOD \\
+                  if (!pop2AndPushIntResult(mod(stackInteger(1),stackInteger(0)))) sendSpecial(byteCode&0xF); break;  // MOD \\
               case 187: setSuccess(true);
-                  if (!primHandler.primitiveMakePoint()) sendSpecial(b&0xF); break;  // MakePt int@int
+                  if (!primHandler.primitiveMakePoint()) sendSpecial(byteCode&0xF); break;  // MakePt int@int
               case 188: setSuccess(true); // Something is wrong with this one...
-                  /*if (!pop2AndPushIntResult(safeShift(stackInteger(1),stackInteger(0))))*/ sendSpecial(b&0xF); break; // bitShift:
+                  /*if (!pop2AndPushIntResult(safeShift(stackInteger(1),stackInteger(0))))*/ sendSpecial(byteCode&0xF); break; // bitShift:
               case 189: setSuccess(true);
-                  if (!pop2AndPushIntResult(div(stackInteger(1),stackInteger(0)))) sendSpecial(b&0xF); break;  // Divide //
+                  if (!pop2AndPushIntResult(div(stackInteger(1),stackInteger(0)))) sendSpecial(byteCode&0xF); break;  // Divide //
               case 190: setSuccess(true);
-                  if (!pop2AndPushIntResult(stackInteger(1) & stackInteger(0))) sendSpecial(b&0xF); break; // bitAnd:
+                  if (!pop2AndPushIntResult(stackInteger(1) & stackInteger(0))) sendSpecial(byteCode&0xF); break; // bitAnd:
               case 191: setSuccess(true);
-                  if (!pop2AndPushIntResult(stackInteger(1) | stackInteger(0))) sendSpecial(b&0xF); break; // bitOr:
+                  if (!pop2AndPushIntResult(stackInteger(1) | stackInteger(0))) sendSpecial(byteCode&0xF); break; // bitOr:
   
               // at:, at:put:, size, next, nextPut:, ...
               case 192: case 193: case 194: case 195: case 196: case 197: case 198: case 199: 
               case 200: case 201: case 202: case 203: case 204: case 205: case 206: case 207: 
-                  if (!primHandler.quickSendOther(receiver,b&0xF))
-                      sendSpecial((b&0xF)+16); break;
+                  if (!primHandler.quickSendOther(receiver,byteCode&0xF))
+                      sendSpecial((byteCode&0xF)+16); break;
   
               // Send Literal Selector with 0, 1, and 2 args
               case 208: case 209: case 210: case 211: case 212: case 213: case 214: case 215: 
               case 216: case 217: case 218: case 219: case 220: case 221: case 222: case 223: 
-                  send(getMethod().methodGetSelector(b&0xF),0,false); break;
+                  send(getMethod().methodGetSelector(byteCode&0xF),0,false); break;
               case 224: case 225: case 226: case 227: case 228: case 229: case 230: case 231: 
               case 232: case 233: case 234: case 235: case 236: case 237: case 238: case 239: 
-                  send(getMethod().methodGetSelector(b&0xF),1,false); break;
+                  send(getMethod().methodGetSelector(byteCode&0xF),1,false); break;
               case 240: case 241: case 242: case 243: case 244: case 245: case 246: case 247: 
               case 248: case 249: case 250: case 251: case 252: case 253: case 254: case 255:
-                  send(getMethod().methodGetSelector(b&0xF),2,false); break; 
+                  send(getMethod().methodGetSelector(byteCode&0xF),2,false); break; 
             }
         }
     }

@@ -53,6 +53,10 @@ public class SqueakObject //Later make variants for common formats
 		return imageData;
 	}
 
+	public byte[] getBitsAsMethodBytes() {
+		return (byte[])imageData;
+	}
+
 	Object sqClass;  //squeak class
     Object[] pointers; //pointer fields; fixed as well as indexable
     Object imageData;       //indexable binary data (bytes or ints)

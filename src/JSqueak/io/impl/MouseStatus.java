@@ -1,4 +1,4 @@
-package JSqueak.io;
+package JSqueak.io.impl;
 
 import java.awt.event.MouseEvent;
 

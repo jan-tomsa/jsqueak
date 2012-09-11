@@ -65,21 +65,21 @@ import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.WindowConstants;
 
-import JSqueak.io.KeyboardQueue;
-import JSqueak.io.MouseStatus;
+import JSqueak.io.impl.KeyboardQueue;
+import JSqueak.io.impl.MouseStatus;
 import JSqueak.vm.SqueakVM;
 
 public class Screen {
-    Dimension fExtent;
-    private int fDepth;
-    private JFrame fFrame;
-    private JLabel fDisplay;
-    private byte fDisplayBits[];
-    private MouseStatus fMouseStatus;
-    private KeyboardQueue fKeyboardQueue;
-    private Timer fHeartBeat;
-    private boolean fScreenChanged;
-    private Object fVMSemaphore;
+    Dimension extent;
+    private int depth;
+    private JFrame frame;
+    private JLabel display;
+    private byte displayBits[];
+    private MouseStatus mouseStatus;
+    private KeyboardQueue keyboardQueue;
+    private Timer heartBeat;
+    private boolean screenChanged;
+    private Object vmSemaphore;
     
     private final static boolean WITH_HEARTBEAT= false;
     private final static int FPS= 10;
@@ -94,91 +94,86 @@ public class Screen {
         new IndexColorModel(1, 2, kComponents, kComponents, kComponents);
     
     public Screen(String title, int width, int height, int depth, Object vmSema) {
-        fVMSemaphore= vmSema;
-        fExtent= new Dimension(width, height);
-        fDepth= depth;
-        fFrame= new JFrame(title);
-        fFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        vmSemaphore= vmSema;
+        this.extent= new Dimension(width, height);
+        this.depth= depth;
+        frame= new JFrame(title);
+        frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         JPanel content= new JPanel(new BorderLayout());
-        Icon noDisplay= new Icon() 
-        {
-            public int getIconWidth() 
-            {
-                return fExtent.width; 
+        Icon noDisplay= new Icon() {
+            public int getIconWidth() {
+                return extent.width; 
             }
-            
-            public int getIconHeight() 
-            {
-                return fExtent.height; 
+            public int getIconHeight() {
+                return extent.height; 
             }
-            
             public void paintIcon(Component c, Graphics g, int x, int y) {}
         };
-        fDisplay= new JLabel(noDisplay);
-        fDisplay.setSize(fExtent);
-        content.add(fDisplay, BorderLayout.CENTER);
-        fFrame.setContentPane(content);
+        display= new JLabel(noDisplay);
+        display.setSize(extent);
+        content.add(display, BorderLayout.CENTER);
+        frame.setContentPane(content);
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
-        fFrame.setLocation((screen.width - fExtent.width)/2, (screen.height - fExtent.height)/2);   // center
+        frame.setLocation((screen.width - extent.width)/2, (screen.height - extent.height)/2);   // center
         
-        fMouseStatus= new MouseStatus( (SqueakVM) fVMSemaphore );
-        fDisplay.addMouseMotionListener( fMouseStatus );
-        fDisplay.addMouseListener(fMouseStatus);
+        mouseStatus= new MouseStatus( (SqueakVM) vmSemaphore );
+        display.addMouseMotionListener( mouseStatus );
+        display.addMouseListener(mouseStatus);
         
-        fDisplay.setFocusable(true);    // enable keyboard input
-        fKeyboardQueue= new KeyboardQueue( (SqueakVM) fVMSemaphore );
-        fDisplay.addKeyListener( fKeyboardQueue );
+        display.setFocusable(true);    // enable keyboard input
+        keyboardQueue= new KeyboardQueue( (SqueakVM) vmSemaphore );
+        display.addKeyListener( keyboardQueue );
         
-        fDisplay.setOpaque(true);
-        fDisplay.getRootPane().setDoubleBuffered(false);    // prevents losing intermediate redraws (how?!)
+        display.setOpaque(true);
+        display.getRootPane().setDoubleBuffered(false);    // prevents losing intermediate redraws (how?!)
     }
     
     public JFrame getFrame() {
-        return fFrame; 
+        return frame; 
     }
     
     public void setBits(byte rawBits[], int depth) {
-        fDepth= depth;
-        fDisplay.setIcon(createDisplayAdapter(fDisplayBits= rawBits)); 
+        this.depth= depth;
+        display.setIcon(createDisplayAdapter(displayBits= rawBits)); 
     }
     
     byte[] getBits() {
-        return fDisplayBits; 
+        return displayBits; 
     }
     
     protected Icon createDisplayAdapter(byte storage[]) {
-        DataBuffer buf= new DataBufferByte(storage, (fExtent.height*fExtent.width/8)*fDepth);       // single bank
-        SampleModel sm= new MultiPixelPackedSampleModel(DataBuffer.TYPE_BYTE, fExtent.width, fExtent.height, fDepth /* bpp */);
+        DataBuffer buf= new DataBufferByte(storage, (extent.height*extent.width/8)*depth);       // single bank
+        SampleModel sm= new MultiPixelPackedSampleModel(DataBuffer.TYPE_BYTE, extent.width, extent.height, depth /* bpp */);
         WritableRaster raster= Raster.createWritableRaster(sm, buf, new Point(0, 0));
         Image image= new BufferedImage(kBlackAndWhiteModel, raster, true, null);
         return new ImageIcon(image); 
     }
     
     public void open() {
-        fFrame.pack();
-        fFrame.setVisible(true);
+        frame.pack();
+        frame.setVisible(true);
         if (WITH_HEARTBEAT) {
-            fHeartBeat= new Timer(1000/FPS /* ms */, new ActionListener() {
+            heartBeat= new Timer(1000/FPS /* ms */, new ActionListener() {
                 public void actionPerformed(ActionEvent evt) {
                     // Swing timers execute on EHT
-                    if (fScreenChanged) {
+                    if (screenChanged) {
                         // could use synchronization, but lets rather paint too often
-                        fScreenChanged= false;
-                        Dimension extent= fDisplay.getSize();
-                        fDisplay.paintImmediately(0, 0, extent.width, extent.height);
+                        screenChanged= false;
+                        Dimension extent= display.getSize();
+                        display.paintImmediately(0, 0, extent.width, extent.height);
                         // Toolkit.getDefaultToolkit().beep();      // FIXME remove
                     }
                 }
             } );
-            fHeartBeat.start(); 
+            heartBeat.start(); 
         }
     }
     
     public void close() {
-        fFrame.setVisible(false);
-        fFrame.dispose();
+        frame.setVisible(false);
+        frame.dispose();
         if (WITH_HEARTBEAT)
-            fHeartBeat.stop(); 
+            heartBeat.stop(); 
     }
     
     public void redisplay(boolean immediately, Rectangle area) {
@@ -186,13 +181,13 @@ public class Screen {
     }
     
     public void redisplay(boolean immediately, final int cornerX, final int cornerY, final int width, final int height) {
-        fDisplay.repaint(cornerX, cornerY, width, height);
-        fScreenChanged= true; 
+        display.repaint(cornerX, cornerY, width, height);
+        screenChanged= true; 
     }
     
     public void redisplay(boolean immediately) {
-        fDisplay.repaint();
-        fScreenChanged= true; 
+        display.repaint();
+        screenChanged= true; 
     }
     
     protected boolean scheduleRedisplay(boolean immediately, Runnable trigger) {
@@ -272,28 +267,28 @@ public class Screen {
             Image ci= createCursorAdapter(extractBits(imageAndMask, 0), extractBits(imageAndMask, Squeak_CURSOR_HEIGHT*4));
             c= tk.createCustomCursor(ci, new Point(0, 0), "Smalltalk-78 cursor"); 
         }
-        fDisplay.setCursor(c); 
+        display.setCursor(c); 
     }
     
     public Dimension getExtent() {
-        return fDisplay.getSize(); 
+        return display.getSize(); 
     }
     
     public void setExtent(Dimension extent) {
-        fDisplay.setSize(extent);
-        fFrame.setSize(extent); 
+        display.setSize(extent);
+        frame.setSize(extent); 
     }
     
     public Point getLastMousePoint() {
-        return new Point(fMouseStatus.getfX(), fMouseStatus.getfY()); 
+        return new Point(mouseStatus.getfX(), mouseStatus.getfY()); 
     }
     
     public int getLastMouseButtonStatus() {
-        return ( fMouseStatus.getfButtons() & 7 ) | fKeyboardQueue.modifierKeys();
+        return ( mouseStatus.getfButtons() & 7 ) | keyboardQueue.modifierKeys();
     }
     
     public void setMousePoint(int x, int y) {
-        Point origin= fDisplay.getLocationOnScreen();
+        Point origin= display.getLocationOnScreen();
         x+= origin.x;
         y+= origin.y;
         try 
@@ -309,11 +304,11 @@ public class Screen {
     }
     
     public int keyboardPeek() {
-        return fKeyboardQueue.peek(); 
+        return keyboardQueue.peek(); 
     }
     
     public int keyboardNext() {
         //System.err.println("character code="+fKeyboardQueue.peek());
-        return fKeyboardQueue.next(); 
+        return keyboardQueue.next(); 
     }
 }
