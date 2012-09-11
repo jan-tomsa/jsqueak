@@ -33,8 +33,8 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import JSqueak.Squeak;
-import JSqueak.display.BitBlt;
-import JSqueak.display.Screen;
+import JSqueak.display.impl.BitBlt;
+import JSqueak.display.impl.ScreenImpl;
 import JSqueak.image.SqueakImage;
 
 /**
@@ -52,7 +52,7 @@ class SqueakPrimitiveHandler
 
     private final FileSystemPrimitives fileSystemPrimitives = new FileSystemPrimitives( this );
     
-    private Screen theDisplay;
+    private ScreenImpl theDisplay;
     private int[] displayBitmap;
     private int displayRaster;
     private byte[] displayBitmapInBytes;
@@ -1147,17 +1147,16 @@ class SqueakPrimitiveHandler
                 theDisplay.setExtent(requestedExtent); 
             }
         } else {
-            theDisplay= new Screen("Squeak", disp.getWidth(),disp.getHeight(),disp.getDepth(),vm);
-            theDisplay.getFrame().addWindowListener(new WindowAdapter() 
-            {
-                public void windowClosing(WindowEvent evt) 
-                {
-                    // TODO ask before shutdown
-                    // FIXME at least lock out quitting until concurrent image save has finished
-                    //exit(1);
-                }
-            }
-            );
+            theDisplay= new ScreenImpl("Squeak", disp.getWidth(),disp.getHeight(),disp.getDepth(),vm);
+            theDisplay.getFrame().addWindowListener(new WindowAdapter() {
+		                public void windowClosing(WindowEvent evt) 
+		                {
+		                    // TODO ask before shutdown
+		                    // FIXME at least lock out quitting until concurrent image save has finished
+		                    //exit(1);
+		                }
+		            }
+            		);
         }
         displayBitmapInBytes= new byte[displayBitmap.length*4];
         copyBitmapToByteArray(displayBitmap,displayBitmapInBytes,
@@ -1223,19 +1222,45 @@ class SqueakPrimitiveHandler
         catch(InterruptedException e) {}
     }
     
+    private class CopyBitsInfo {
+    	boolean result;
+    	int bitCount;
+    	public CopyBitsInfo(boolean result, int bitCount) {
+    		this.result = result;
+    		this.bitCount = bitCount;
+    	}
+    }
+    
     private void primitiveCopyBits(SqueakObject rcvr, int argCount) {
+    	if (theDisplay!=null) {
+    		try {
+    			//theDisplay.copyBits();
+    			CopyBitsInfo bi = screenCopyBits(rcvr, argCount, theDisplay); 
+    			if (bi.result) {
+    				vm.popNandPush(2,bi.bitCount);
+    			}
+    		} catch (Exception e) {
+    			throw PrimitiveFailed;
+    		}
+    	}
+    }
+    
+    private CopyBitsInfo screenCopyBits(SqueakObject rcvr, int argCount, ScreenImpl screen) {
         // no rcvr class check, to allow unknown subclasses (e.g. under Turtle)
         if (!bitbltTable.loadBitBlt(rcvr, argCount, false, (SqueakObject)vm.getSpecialObject(Squeak.splOb_TheDisplay))) 
-            throw PrimitiveFailed;
+            throw new RuntimeException();
         
         Rectangle affectedArea= bitbltTable.copyBits();
-        if (affectedArea != null && theDisplay!=null) {
+        if (affectedArea != null && screen!=null) {
             copyBitmapToByteArray(displayBitmap,displayBitmapInBytes,affectedArea,
                                   bitbltTable.getDest().getPitch(),bitbltTable.getDest().getDepth());
-            theDisplay.redisplay(false, affectedArea); 
+            screen.redisplay(false, affectedArea); 
         }
-        if (bitbltTable.getCombinationRule() == 22 || bitbltTable.getCombinationRule() == 32)
-            vm.popNandPush(2,SqueakVM.smallFromInt(bitbltTable.getBitCount()));
+        if (bitbltTable.getCombinationRule() == 22 || bitbltTable.getCombinationRule() == 32) {
+            return new CopyBitsInfo(true, SqueakVM.smallFromInt(bitbltTable.getBitCount()));
+        } else {
+        	return new CopyBitsInfo(false, 0);
+        }
     }
     
     private void copyBitmapToByteArray(int[] words, byte[] bytes,Rectangle rect, int raster, int depth) {
