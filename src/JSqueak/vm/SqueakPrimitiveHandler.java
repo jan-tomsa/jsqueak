@@ -1160,7 +1160,8 @@ class SqueakPrimitiveHandler
         }
         displayBitmapInBytes= new byte[displayBitmap.length*4];
         copyBitmapToByteArray(displayBitmap,displayBitmapInBytes,
-                              new Rectangle(0,0,disp.getWidth(),disp.getHeight()),disp.getPitch(),disp.getDepth());
+                              new Rectangle(0,0,disp.getWidth(),disp.getHeight()),
+                              disp.getPitch(),disp.getDepth(),BWMask);
         theDisplay.setBits(displayBitmapInBytes, disp.getDepth());
         if (!remap) 
             theDisplay.open();
@@ -1193,7 +1194,8 @@ class SqueakPrimitiveHandler
         byte[] cursorBytes= new byte[8*cursorBitsSize];
         copyBitmapToByteArray(cursorForm.getBits(),cursorBytes,
                               new Rectangle(0,0,cursorForm.getWidth(),cursorForm.getHeight()),
-                              cursorForm.getPitch(),cursorForm.getDepth());
+                              cursorForm.getPitch(),cursorForm.getDepth(),
+                              BWMask);
         for(int i=0; i<(cursorBitsSize*4); i++)
             cursorBytes[i+(cursorBitsSize*4)]= cursorBytes[i];
         theDisplay.setCursor(cursorBytes,BWMask);
@@ -1235,7 +1237,7 @@ class SqueakPrimitiveHandler
     	if (theDisplay!=null) {
     		try {
     			//theDisplay.copyBits();
-    			CopyBitsInfo bi = screenCopyBits(rcvr, argCount, theDisplay); 
+    			CopyBitsInfo bi = screenCopyBits(rcvr, argCount, theDisplay, BWMask); 
     			if (bi.result) {
     				vm.popNandPush(2,bi.bitCount);
     			}
@@ -1245,7 +1247,8 @@ class SqueakPrimitiveHandler
     	}
     }
     
-    private CopyBitsInfo screenCopyBits(SqueakObject rcvr, int argCount, ScreenImpl screen) {
+    private CopyBitsInfo screenCopyBits(SqueakObject rcvr, int argCount, 
+    									ScreenImpl screen, int mask) {
         // no rcvr class check, to allow unknown subclasses (e.g. under Turtle)
         if (!bitbltTable.loadBitBlt(rcvr, argCount, false, (SqueakObject)vm.getSpecialObject(Squeak.splOb_TheDisplay))) 
             throw new RuntimeException();
@@ -1253,7 +1256,9 @@ class SqueakPrimitiveHandler
         Rectangle affectedArea= bitbltTable.copyBits();
         if (affectedArea != null && screen!=null) {
             copyBitmapToByteArray(displayBitmap,displayBitmapInBytes,affectedArea,
-                                  bitbltTable.getDest().getPitch(),bitbltTable.getDest().getDepth());
+                                  bitbltTable.getDest().getPitch(),
+                                  bitbltTable.getDest().getDepth(),
+                                  mask);
             screen.redisplay(false, affectedArea); 
         }
         if (bitbltTable.getCombinationRule() == 22 || bitbltTable.getCombinationRule() == 32) {
@@ -1263,7 +1268,8 @@ class SqueakPrimitiveHandler
         }
     }
     
-    private void copyBitmapToByteArray(int[] words, byte[] bytes,Rectangle rect, int raster, int depth) {
+    private void copyBitmapToByteArray(int[] words, byte[] bytes,
+    		Rectangle rect, int raster, int depth, int mask) {
         // Copy our 32-bit words into a byte array  until we find out
         //  how to make AWT happy with int buffers
         int word;
@@ -1272,7 +1278,7 @@ class SqueakPrimitiveHandler
         for (int y=rect.y; y<rect.y+rect.height; y++) {
             int iy= y*raster;
             for(int ix=ix1; ix<ix2; ix++) {
-                word= (words[iy+ix])^BWMask;
+                word= (words[iy+ix])^mask;
                 for(int j=0; j<4; j++)
                     bytes[((iy+ix)*4)+j]= (byte)((word>>>((3-j)*8))&255); 
             } 
