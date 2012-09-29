@@ -33,9 +33,11 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import JSqueak.Squeak;
+import JSqueak.display.Screen;
 import JSqueak.display.impl.BitBlt;
-import JSqueak.display.impl.ScreenImpl;
+//import JSqueak.display.impl.ScreenImpl;
 import JSqueak.image.SqueakImage;
+import JSqueak.display.ScreenFactory;
 
 /**
  * @author Daniel Ingalls
@@ -52,16 +54,18 @@ class SqueakPrimitiveHandler
 
     private final FileSystemPrimitives fileSystemPrimitives = new FileSystemPrimitives( this );
     
-    private ScreenImpl theDisplay;
+    private Screen theDisplay;
     private int[] displayBitmap;
     private int displayRaster;
     private byte[] displayBitmapInBytes;
     private int BWMask= 0;
     AtCache atCache;
+	private ScreenFactory screenFactory;
     
     
-    SqueakPrimitiveHandler(SqueakVM theVM) {
+    SqueakPrimitiveHandler(SqueakVM theVM, ScreenFactory screenFactory) {
         vm= theVM;
+        this.screenFactory = screenFactory;
         image= vm.getImage();
         bitbltTable= new BitBlt(vm);
         atCache = new AtCache(vm, this); 
@@ -1147,7 +1151,7 @@ class SqueakPrimitiveHandler
                 theDisplay.setExtent(requestedExtent); 
             }
         } else {
-            theDisplay= new ScreenImpl("Squeak", disp.getWidth(),disp.getHeight(),disp.getDepth(),vm);
+            theDisplay= screenFactory.createScreen("Squeak", disp.getWidth(),disp.getHeight(),disp.getDepth(),vm);
             theDisplay.getFrame().addWindowListener(new WindowAdapter() {
 		                public void windowClosing(WindowEvent evt) 
 		                {
@@ -1248,7 +1252,7 @@ class SqueakPrimitiveHandler
     }
     
     private CopyBitsInfo screenCopyBits(SqueakObject rcvr, int argCount, 
-    									ScreenImpl screen, int mask) {
+    									Screen screen, int mask) {
         // no rcvr class check, to allow unknown subclasses (e.g. under Turtle)
         if (!bitbltTable.loadBitBlt(rcvr, argCount, false, (SqueakObject)vm.getSpecialObject(Squeak.splOb_TheDisplay))) 
             throw new RuntimeException();

@@ -29,6 +29,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
+import JSqueak.display.Screen;
+import JSqueak.display.ScreenFactory;
+import JSqueak.display.impl.ScreenFactoryImpl;
 import JSqueak.image.SqueakImage;
 import JSqueak.monitor.Monitor;
 import JSqueak.monitor.MonitorFrame;
@@ -66,8 +69,9 @@ public class Starter {
         //SqueakVM.initSmallIntegerCache();
         SqueakImage img = args.length > 0 ? locateSavedImageAndLoadIt( args[0] )
                                           : locateStartableImageAndLoadIt();
-        //monitorFrame.logMessage(MINI_IMAGE_FILE_NAME);
-        SqueakVM vm= new SqueakVM(img,monitor);
+        ScreenFactory screenFactory = new ScreenFactoryImpl();
+		//monitorFrame.logMessage(MINI_IMAGE_FILE_NAME);
+        SqueakVM vm= new SqueakVM(img,monitor, screenFactory );
         vm.run(); 
     }
 

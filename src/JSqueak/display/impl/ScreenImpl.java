@@ -177,6 +177,7 @@ public class ScreenImpl implements Screen {
             heartBeat.stop(); 
     }
     
+    @Override
     public void redisplay(boolean immediately, Rectangle area) {
         redisplay(immediately, area.x, area.y, area.width, area.height); 
     }
@@ -252,6 +253,7 @@ public class ScreenImpl implements Screen {
         return answer; 
     }
     
+    @Override
     public void setCursor(byte imageAndMask[], int BWMask) {
         int n= imageAndMask.length;
         for(int i=0; i<n/2; i++) 
@@ -271,19 +273,23 @@ public class ScreenImpl implements Screen {
         display.setCursor(c); 
     }
     
+    @Override
     public Dimension getExtent() {
         return display.getSize(); 
     }
     
+    @Override
     public void setExtent(Dimension extent) {
         display.setSize(extent);
         frame.setSize(extent); 
     }
     
+    @Override
     public Point getLastMousePoint() {
         return new Point(mouseStatus.getfX(), mouseStatus.getfY()); 
     }
     
+    @Override
     public int getLastMouseButtonStatus() {
         return ( mouseStatus.getfButtons() & 7 ) | keyboardQueue.modifierKeys();
     }
@@ -303,11 +309,13 @@ public class ScreenImpl implements Screen {
             System.err.println("Mouse move to " + x + "@" + y + " failed."); 
         }
     }
-    
+
+    @Override
     public int keyboardPeek() {
         return keyboardQueue.peek(); 
     }
     
+    @Override
     public int keyboardNext() {
         //System.err.println("character code="+fKeyboardQueue.peek());
         return keyboardQueue.next(); 
