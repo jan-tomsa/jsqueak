@@ -66,18 +66,20 @@ import javax.swing.Timer;
 import javax.swing.WindowConstants;
 
 import JSqueak.display.Screen;
+import JSqueak.io.Keyboard;
+import JSqueak.io.KeyboardFactory;
 import JSqueak.io.impl.KeyboardQueue;
 import JSqueak.io.impl.MouseStatus;
 import JSqueak.vm.SqueakVM;
 
-public class ScreenImpl implements Screen {
+public class ScreenImpl implements Screen  {
     Dimension extent;
     private int depth;
     private JFrame frame;
     private JLabel display;
     private byte displayBits[];
     private MouseStatus mouseStatus;
-    private KeyboardQueue keyboardQueue;
+    private Keyboard keyboard;
     private Timer heartBeat;
     private boolean screenChanged;
     private Object vmSemaphore;
@@ -94,7 +96,8 @@ public class ScreenImpl implements Screen {
     private final static ColorModel kBlackAndWhiteModel =
         new IndexColorModel(1, 2, kComponents, kComponents, kComponents);
     
-    public ScreenImpl(String title, int width, int height, int depth, Object vmSema) {
+    public ScreenImpl(String title, int width, int height, int depth, 
+    		Object vmSema, Keyboard keyboard) {
         vmSemaphore= vmSema;
         this.extent= new Dimension(width, height);
         this.depth= depth;
@@ -122,8 +125,9 @@ public class ScreenImpl implements Screen {
         display.addMouseListener(mouseStatus);
         
         display.setFocusable(true);    // enable keyboard input
-        keyboardQueue= new KeyboardQueue( (SqueakVM) vmSemaphore );
-        display.addKeyListener( keyboardQueue );
+        this.keyboard = keyboard;
+        //keyboard= new KeyboardQueue( (SqueakVM) vmSemaphore );        
+        display.addKeyListener( this.keyboard );
         
         display.setOpaque(true);
         display.getRootPane().setDoubleBuffered(false);    // prevents losing intermediate redraws (how?!)
@@ -291,7 +295,7 @@ public class ScreenImpl implements Screen {
     
     @Override
     public int getLastMouseButtonStatus() {
-        return ( mouseStatus.getfButtons() & 7 ) | keyboardQueue.modifierKeys();
+        return ( mouseStatus.getfButtons() & 7 ) | keyboard.modifierKeys();
     }
     
     public void setMousePoint(int x, int y) {
@@ -308,16 +312,5 @@ public class ScreenImpl implements Screen {
             // ignore silently?
             System.err.println("Mouse move to " + x + "@" + y + " failed."); 
         }
-    }
-
-    @Override
-    public int keyboardPeek() {
-        return keyboardQueue.peek(); 
-    }
-    
-    @Override
-    public int keyboardNext() {
-        //System.err.println("character code="+fKeyboardQueue.peek());
-        return keyboardQueue.next(); 
     }
 }

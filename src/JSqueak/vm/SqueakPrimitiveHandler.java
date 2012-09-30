@@ -37,6 +37,8 @@ import JSqueak.display.Screen;
 import JSqueak.display.impl.BitBlt;
 //import JSqueak.display.impl.ScreenImpl;
 import JSqueak.image.SqueakImage;
+import JSqueak.io.Keyboard;
+import JSqueak.io.KeyboardFactory;
 import JSqueak.display.ScreenFactory;
 
 /**
@@ -55,17 +57,20 @@ class SqueakPrimitiveHandler
     private final FileSystemPrimitives fileSystemPrimitives = new FileSystemPrimitives( this );
     
     private Screen theDisplay;
+    private Keyboard theKeyboard;
     private int[] displayBitmap;
     private int displayRaster;
     private byte[] displayBitmapInBytes;
     private int BWMask= 0;
     AtCache atCache;
 	private ScreenFactory screenFactory;
+
     
-    
-    SqueakPrimitiveHandler(SqueakVM theVM, ScreenFactory screenFactory) {
+    SqueakPrimitiveHandler(SqueakVM theVM, ScreenFactory screenFactory, 
+    		KeyboardFactory keyboardFactory) {
         vm= theVM;
         this.screenFactory = screenFactory;
+        this.theKeyboard = keyboardFactory.createKeyboard(vm);
         image= vm.getImage();
         bitbltTable= new BitBlt(vm);
         atCache = new AtCache(vm, this); 
@@ -1151,7 +1156,9 @@ class SqueakPrimitiveHandler
                 theDisplay.setExtent(requestedExtent); 
             }
         } else {
-            theDisplay= screenFactory.createScreen("Squeak", disp.getWidth(),disp.getHeight(),disp.getDepth(),vm);
+            theDisplay= screenFactory.createScreen("Squeak", 
+            		disp.getWidth(),disp.getHeight(),disp.getDepth(),
+            		vm, theKeyboard);
             theDisplay.getFrame().addWindowListener(new WindowAdapter() {
 		                public void windowClosing(WindowEvent evt) 
 		                {
@@ -1309,13 +1316,13 @@ class SqueakPrimitiveHandler
     }
     
     private Object primitiveKbdNext() {
-        return SqueakVM.smallFromInt(theDisplay.keyboardNext()); 
+        return SqueakVM.smallFromInt(theKeyboard.keyboardNext()); 
     }
     
     private Object primitiveKbdPeek() {
         if (theDisplay==null) 
             return vm.nilObj;
-        int peeked= theDisplay.keyboardPeek();
+        int peeked= theKeyboard.keyboardPeek();
         return peeked==0? (Object) vm.nilObj : SqueakVM.smallFromInt(peeked); 
     }
     

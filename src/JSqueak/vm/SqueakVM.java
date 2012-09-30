@@ -29,6 +29,7 @@ import java.util.Arrays;
 import JSqueak.Squeak;
 import JSqueak.display.ScreenFactory;
 import JSqueak.image.SqueakImage;
+import JSqueak.io.KeyboardFactory;
 import JSqueak.monitor.Monitor;
 
 /**
@@ -95,14 +96,15 @@ public class SqueakVM {
 	private Monitor monitor;
 	private MethodCache methodCache;
     
-	public SqueakVM(SqueakImage anImage, Monitor monitor, ScreenFactory screenFactory) {
+	public SqueakVM(SqueakImage anImage, Monitor monitor, 
+			ScreenFactory screenFactory, KeyboardFactory keyboardFactory) {
 		this.monitor = monitor; 
 		monitor.logMessage("Creating VM");
 		// canonical creation
 		this.methodCache = new MethodCache();
 		setImage(anImage);
 		getImage().bindVM(this);
-		primHandler = new SqueakPrimitiveHandler(this, screenFactory);
+		primHandler = new SqueakPrimitiveHandler(this, screenFactory, keyboardFactory );
 		loadImageState();
 		initVMState();
 		loadInitialContext();

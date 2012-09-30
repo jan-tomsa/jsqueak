@@ -17,6 +17,4 @@ public interface Screen {
 	public void redisplay(boolean immediately, Rectangle affectedArea);
 	public Point getLastMousePoint();
 	public int getLastMouseButtonStatus();
-	public int keyboardNext();
-	public int keyboardPeek();
 }

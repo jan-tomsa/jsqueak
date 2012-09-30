@@ -1,7 +1,9 @@
 package JSqueak.io;
 
-public interface Keyboard {
-    public int peek();
-    public int next();
-    public int modifierKeys();
+import java.awt.event.KeyListener;
+
+public interface Keyboard extends KeyListener {
+	int keyboardPeek();
+	int keyboardNext();
+	int modifierKeys();
 }

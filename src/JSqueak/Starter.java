@@ -33,8 +33,10 @@ import JSqueak.display.Screen;
 import JSqueak.display.ScreenFactory;
 import JSqueak.display.impl.ScreenFactoryImpl;
 import JSqueak.image.SqueakImage;
+import JSqueak.io.KeyboardFactory;
 import JSqueak.monitor.Monitor;
 import JSqueak.monitor.MonitorFrame;
+import JSqueak.io.impl.KeyboardFactoryImpl;
 import JSqueak.vm.SqueakVM;
 
 public class Starter {
@@ -71,7 +73,8 @@ public class Starter {
                                           : locateStartableImageAndLoadIt();
         ScreenFactory screenFactory = new ScreenFactoryImpl();
 		//monitorFrame.logMessage(MINI_IMAGE_FILE_NAME);
-        SqueakVM vm= new SqueakVM(img,monitor, screenFactory );
+        KeyboardFactory keyboardFactory = new KeyboardFactoryImpl();		
+        SqueakVM vm= new SqueakVM(img,monitor, screenFactory, keyboardFactory);
         vm.run(); 
     }
 
