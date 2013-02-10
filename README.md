@@ -21,14 +21,13 @@ Goals:
 * Comprehensible source code
 * Saving image (not necessarily to the original binary format)
 * Loading image of current Squeak 3.9
-* Java interop 
- ** Java calling Smalltalk
+* Java interop: Java calling Smalltalk
    e.g.:
    ```java
     Smalltalk st = new Smalltalk("my.image");
     SmalltalkCallResult fiveSquares = st.eval("(1 to: 5) collect: [ :it | it*it ]");
    ```
- ** Smalltalk calling Java
+* Java interop: Smalltalk calling Java
    e.g.:
    ```smalltalk
    |jre|
