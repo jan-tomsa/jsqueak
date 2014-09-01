@@ -2,3 +2,4 @@
 /build/jsqueak/mini.image.gz
 /target
 /.idea
+/*.iml
