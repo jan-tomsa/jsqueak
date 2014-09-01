@@ -1,4 +1,4 @@
-package JSqueak.vm;
+package jsqueak.vm;
 
 public class FormCache {
 	private SqueakVM vm;

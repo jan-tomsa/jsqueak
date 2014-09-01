@@ -29,7 +29,7 @@ THE SOFTWARE.
  continued to help whenever I was particularly stuck during the project.
 */
 
-package JSqueak.display.impl;
+package jsqueak.display.impl;
 
 import java.awt.AWTException;
 import java.awt.BorderLayout;
@@ -65,12 +65,10 @@ import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.WindowConstants;
 
-import JSqueak.display.Screen;
-import JSqueak.io.Keyboard;
-import JSqueak.io.KeyboardFactory;
-import JSqueak.io.impl.KeyboardQueue;
-import JSqueak.io.impl.MouseStatus;
-import JSqueak.vm.SqueakVM;
+import jsqueak.display.Screen;
+import jsqueak.io.Keyboard;
+import jsqueak.io.impl.MouseStatus;
+import jsqueak.vm.SqueakVM;
 
 public class ScreenImpl implements Screen  {
     Dimension extent;

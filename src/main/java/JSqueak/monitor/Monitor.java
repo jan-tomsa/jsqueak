@@ -1,4 +1,4 @@
-package JSqueak.monitor;
+package jsqueak.monitor;
 
 public interface Monitor {
 	public void logMessage(String message);

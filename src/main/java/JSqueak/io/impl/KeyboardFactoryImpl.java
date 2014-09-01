@@ -1,8 +1,8 @@
-package JSqueak.io.impl;
+package jsqueak.io.impl;
 
-import JSqueak.io.Keyboard;
-import JSqueak.io.KeyboardFactory;
-import JSqueak.vm.SqueakVM;
+import jsqueak.io.Keyboard;
+import jsqueak.io.KeyboardFactory;
+import jsqueak.vm.SqueakVM;
 
 public class KeyboardFactoryImpl implements KeyboardFactory {
 

@@ -1,4 +1,4 @@
-package JSqueak.io;
+package jsqueak.io;
 
 import java.awt.event.KeyListener;
 

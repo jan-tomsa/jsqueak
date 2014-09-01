@@ -1,11 +1,11 @@
-package JSqueak.image;
+package jsqueak.image;
 
 import java.io.DataInput;
 import java.io.IOException;
 import java.util.Hashtable;
 
-import JSqueak.Squeak;
-import JSqueak.vm.SqueakObject;
+import jsqueak.Squeak;
+import jsqueak.vm.SqueakObject;
 
 class SqueakImageReader {
 	SqueakImageHeader imageHeader = null;

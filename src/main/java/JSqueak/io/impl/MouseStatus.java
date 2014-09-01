@@ -1,10 +1,10 @@
-package JSqueak.io.impl;
+package jsqueak.io.impl;
 
 import java.awt.event.MouseEvent;
 
 import javax.swing.event.MouseInputAdapter;
 
-import JSqueak.vm.SqueakVM;
+import jsqueak.vm.SqueakVM;
 
 public class MouseStatus extends MouseInputAdapter 
 {

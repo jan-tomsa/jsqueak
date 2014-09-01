@@ -29,7 +29,7 @@ THE SOFTWARE.
  continued to help whenever I was particularly stuck during the project.
 */
 
-package JSqueak;
+package jsqueak;
 
 public class Main 
 {

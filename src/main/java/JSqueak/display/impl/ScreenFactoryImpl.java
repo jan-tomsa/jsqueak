@@ -1,9 +1,9 @@
-package JSqueak.display.impl;
+package jsqueak.display.impl;
 
-import JSqueak.display.Screen;
-import JSqueak.display.ScreenFactory;
-import JSqueak.io.Keyboard;
-import JSqueak.vm.SqueakVM;
+import jsqueak.display.Screen;
+import jsqueak.display.ScreenFactory;
+import jsqueak.io.Keyboard;
+import jsqueak.vm.SqueakVM;
 
 public class ScreenFactoryImpl implements ScreenFactory {
 

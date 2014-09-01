@@ -21,7 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package JSqueak.image;
+package jsqueak.image;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -39,11 +39,11 @@ import java.util.Hashtable;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import JSqueak.Squeak;
-import JSqueak.monitor.Monitor;
-import JSqueak.util.HexUtils;
-import JSqueak.vm.SqueakObject;
-import JSqueak.vm.SqueakVM;
+import jsqueak.Squeak;
+import jsqueak.monitor.Monitor;
+import jsqueak.util.HexUtils;
+import jsqueak.vm.SqueakObject;
+import jsqueak.vm.SqueakVM;
 
 /**
  * @author Daniel Ingalls

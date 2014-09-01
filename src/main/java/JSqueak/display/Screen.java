@@ -1,4 +1,4 @@
-package JSqueak.display;
+package jsqueak.display;
 
 import java.awt.Dimension;
 import java.awt.Point;

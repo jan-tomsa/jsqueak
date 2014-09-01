@@ -21,14 +21,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package JSqueak.display.impl;
+package jsqueak.display.impl;
 
 import java.awt.Rectangle;
 
-import JSqueak.Squeak;
-import JSqueak.vm.SqueakObject;
-import JSqueak.vm.SqueakVM;
-import JSqueak.vm.FormCache;
+import jsqueak.Squeak;
+import jsqueak.vm.SqueakObject;
+import jsqueak.vm.SqueakVM;
+import jsqueak.vm.FormCache;
 
 /**
  * @author Dan Ingalls

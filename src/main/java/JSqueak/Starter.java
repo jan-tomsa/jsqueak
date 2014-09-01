@@ -21,7 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package JSqueak;
+package jsqueak;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -29,15 +29,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
-import JSqueak.display.Screen;
-import JSqueak.display.ScreenFactory;
-import JSqueak.display.impl.ScreenFactoryImpl;
-import JSqueak.image.SqueakImage;
-import JSqueak.io.KeyboardFactory;
-import JSqueak.monitor.Monitor;
-import JSqueak.monitor.MonitorFrame;
-import JSqueak.io.impl.KeyboardFactoryImpl;
-import JSqueak.vm.SqueakVM;
+import jsqueak.display.ScreenFactory;
+import jsqueak.display.impl.ScreenFactoryImpl;
+import jsqueak.image.SqueakImage;
+import jsqueak.io.KeyboardFactory;
+import jsqueak.monitor.Monitor;
+import jsqueak.monitor.MonitorFrame;
+import jsqueak.io.impl.KeyboardFactoryImpl;
+import jsqueak.vm.SqueakVM;
 
 public class Starter {
     private static final String MINI_IMAGE_FILE_NAME = "mini.image.gz";

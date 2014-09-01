@@ -1,4 +1,4 @@
-package JSqueak.monitor;
+package jsqueak.monitor;
 
 import java.awt.Container;
 import java.awt.GraphicsConfiguration;

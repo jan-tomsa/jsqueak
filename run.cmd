@@ -1,1 +1,1 @@
-java -cp target\jsqueak-1.0-SNAPSHOT.jar JSqueak.Main
+java -cp target\jsqueak-1.0-SNAPSHOT.jar jsqueak.Main

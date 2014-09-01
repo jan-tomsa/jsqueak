@@ -1,9 +1,9 @@
-package JSqueak.image;
+package jsqueak.image;
 
 import java.lang.ref.WeakReference;
 import java.util.Hashtable;
 
-import JSqueak.vm.SqueakObject;
+import jsqueak.vm.SqueakObject;
 
 class ObjectMutator {
 	

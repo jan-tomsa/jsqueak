@@ -1,6 +1,6 @@
-package JSqueak.io;
+package jsqueak.io;
 
-import JSqueak.vm.SqueakVM;
+import jsqueak.vm.SqueakVM;
 
 public interface KeyboardFactory {
 

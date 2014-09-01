@@ -21,7 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package JSqueak.vm;
+package jsqueak.vm;
 
 import java.awt.Dimension;
 import java.awt.Point;
@@ -32,14 +32,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
-import JSqueak.Squeak;
-import JSqueak.display.Screen;
-import JSqueak.display.impl.BitBlt;
-//import JSqueak.display.impl.ScreenImpl;
-import JSqueak.image.SqueakImage;
-import JSqueak.io.Keyboard;
-import JSqueak.io.KeyboardFactory;
-import JSqueak.display.ScreenFactory;
+import jsqueak.Squeak;
+import jsqueak.display.Screen;
+import jsqueak.display.impl.BitBlt;
+//import jsqueak.display.impl.ScreenImpl;
+import jsqueak.image.SqueakImage;
+import jsqueak.io.Keyboard;
+import jsqueak.io.KeyboardFactory;
+import jsqueak.display.ScreenFactory;
 
 /**
  * @author Daniel Ingalls

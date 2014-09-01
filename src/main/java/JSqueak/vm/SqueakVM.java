@@ -21,16 +21,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package JSqueak.vm;
+package jsqueak.vm;
 
 import java.io.FileInputStream;
 import java.util.Arrays;
 
-import JSqueak.Squeak;
-import JSqueak.display.ScreenFactory;
-import JSqueak.image.SqueakImage;
-import JSqueak.io.KeyboardFactory;
-import JSqueak.monitor.Monitor;
+import jsqueak.Squeak;
+import jsqueak.display.ScreenFactory;
+import jsqueak.image.SqueakImage;
+import jsqueak.io.KeyboardFactory;
+import jsqueak.monitor.Monitor;
 
 /**
  * @author Daniel Ingalls

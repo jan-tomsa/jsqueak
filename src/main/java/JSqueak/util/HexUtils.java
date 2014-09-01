@@ -1,4 +1,4 @@
-package JSqueak.util;
+package jsqueak.util;
 
 public class HexUtils {
 

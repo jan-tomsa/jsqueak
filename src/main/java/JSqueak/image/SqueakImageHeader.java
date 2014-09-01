@@ -1,4 +1,4 @@
-package JSqueak.image;
+package jsqueak.image;
 
 class SqueakImageHeader {
 	boolean doSwap;

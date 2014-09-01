@@ -21,13 +21,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package JSqueak.vm;
+package jsqueak.vm;
 
 import java.util.Arrays;
 import java.util.Hashtable;
 
-import JSqueak.Squeak;
-import JSqueak.image.SqueakImage;
+import jsqueak.Squeak;
+import jsqueak.image.SqueakImage;
 
 /**
  * @author Daniel Ingalls
