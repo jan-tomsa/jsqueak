@@ -78,7 +78,7 @@ public class Starter {
         ScreenFactory screenFactory = new ScreenFactoryImpl();
 		//monitorFrame.logMessage(MINI_IMAGE_FILE_NAME);
         KeyboardFactory keyboardFactory = new KeyboardFactoryImpl();		
-        SqueakVM vm= new SqueakVM(img,monitor, screenFactory, keyboardFactory);
+        SqueakVM vm= new SqueakVM(img, monitor, screenFactory, keyboardFactory);
         vm.run(); 
     }
 
