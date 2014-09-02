@@ -82,10 +82,10 @@ public class SqueakVM {
     private int pendingFinalizationSignals;
     
 	// 31-bit small Integers, range:
-	public static final int MAX_SMALL_INT=  0x3FFFFFFF; 
-	public static final int MIN_SMALL_INT= -0x40000000;
-    public static final int NON_SMALL_INT= -0x50000000; //non-small and neg(so non pos32 too)
-    public static final int MILLISECOND_CLOCK_MASK= MAX_SMALL_INT>>1; //keeps ms logic in small int range
+	public static final int MAX_SMALL_INT =  0x3FFFFFFF;
+	public static final int MIN_SMALL_INT = -0x40000000;
+    public static final int NON_SMALL_INT = -0x50000000; //non-small and neg(so non pos32 too)
+    public static final int MILLISECOND_CLOCK_MASK = MAX_SMALL_INT>>1; //keeps ms logic in small int range
     
     int byteCount= 0;
     FileInputStream byteTracker;
