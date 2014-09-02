@@ -456,14 +456,19 @@ class FileSystemPrimitives
         long modificationTime = file.lastModified();
         boolean dirFlag = file.isDirectory();
         long fileSize = file.length();
-        
-        Object[] array = { fHandler.makeStString( name ),
-                fHandler.squeakSeconds( creationTime ),
-                fHandler.squeakSeconds( modificationTime ),
-                fHandler.squeakBool( dirFlag ),
-                fHandler.pos32BitIntFor( fileSize ) };
-        
-        return fHandler.squeakArray( array );
+
+	    try {
+	        Object[] array = { fHandler.makeStString( name ),
+	                fHandler.squeakSeconds( creationTime ),
+	                fHandler.squeakSeconds( modificationTime ),
+	                fHandler.squeakBool( dirFlag ),
+	                fHandler.pos32BitIntFor( fileSize ) };
+
+	        return fHandler.squeakArray( array );
+	    } catch (ArrayIndexOutOfBoundsException e) {
+		    System.out.println("Error in FileSystemPrimitives.makeDirectoryEntryArray: name = '" + name + "'");
+		    throw e;
+	    }
     }
 
     // -- Support methods -----------------------------------------------------------------
