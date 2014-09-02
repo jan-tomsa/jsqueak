@@ -43,7 +43,11 @@ public class Starter {
     private static Monitor monitor = null;
     
     private static SqueakImage locateStartableImageAndLoadIt() throws IOException {
+	    monitor.logMessage("Attempting to load the default image.");
         URL imageUrl = Starter.class.getResource( MINI_IMAGE_FILE_NAME );
+	    if (imageUrl == null) {
+		    throw new RuntimeException("Failed to load image at URL '"+ MINI_IMAGE_FILE_NAME +"'");
+	    }
         if ( "file".equals( imageUrl.getProtocol() ) )
             return new SqueakImage( new File( imageUrl.getPath() ), monitor );
             
@@ -55,6 +59,7 @@ public class Starter {
     }
 
     private static SqueakImage locateSavedImageAndLoadIt( String pathname ) throws IOException {
+	    monitor.logMessage("Attempting to load image '" + pathname + "'.");
         File saved = new File( pathname );
         if ( saved.exists() )
             return new SqueakImage( saved, monitor );

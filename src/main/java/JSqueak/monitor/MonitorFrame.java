@@ -7,11 +7,7 @@ import java.awt.GridBagLayout;
 import java.awt.HeadlessException;
 import java.awt.event.ActionEvent;
 
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
+import javax.swing.*;
 
 public class MonitorFrame extends JFrame implements Monitor {
 	JLabel lbStatus;
@@ -42,6 +38,7 @@ public class MonitorFrame extends JFrame implements Monitor {
 		setVisible(true);
 		btDoSomething.setActionCommand("do_something");
 		//btDoSomething.addActionListener(this);
+		setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 	}
 
 	public void actionPerformed(ActionEvent e) {
