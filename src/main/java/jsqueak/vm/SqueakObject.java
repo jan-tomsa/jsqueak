@@ -59,7 +59,7 @@ public class SqueakObject //Later make variants for common formats
 
 	Object sqClass;  //squeak class
     Object[] pointers; //pointer fields; fixed as well as indexable
-    Object imageData;       //indexable binary data (bytes or ints)
+    private Object imageData;       //indexable binary data (bytes or ints)
     
     public SqueakObject(Integer squeakClass, int fmt, int hsh, int[] imageData) 
     {

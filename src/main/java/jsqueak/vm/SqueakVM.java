@@ -276,7 +276,7 @@ public class SqueakVM {
     
     public Object pop() {
         //Note leaves garbage above SP.  Serious reclaim should store nils above SP
-        return getActiveContext().pointers[sp--]; 
+        return getActiveContext().getPointer(sp--);
     }
     
     public void popN(int nToPop) {
@@ -284,20 +284,20 @@ public class SqueakVM {
     }
     
     public void push(Object oop) {
-        getActiveContext().pointers[++sp] = oop; 
+        getActiveContext().setPointer(++sp,oop);
     }
     
-    public void popNandPush(int nToPop,Object oop) 
-    {
-        getActiveContext().pointers[sp-= nToPop-1] = oop; 
+    public void popNandPush(int nToPop, Object oop) {
+	    sp -= nToPop-1;
+        getActiveContext().setPointer(sp,oop);
     }
     
     public Object top() {
-        return getActiveContext().pointers[getSp()]; 
+        return getActiveContext().getPointer(getSp());
     }
     
     public Object stackValue(int depthIntoStack) {
-        return getActiveContext().pointers[getSp()-depthIntoStack]; 
+        return getActiveContext().getPointer(getSp()-depthIntoStack);
     }
     
     // INNER BYTECODE INTERPRETER:
@@ -954,7 +954,7 @@ public class SqueakVM {
 		// verify that lookupClass is actually in reciver's inheritance
 		SqueakObject currentClass = getClass(stackValue(3));
 		while (currentClass != lookupClass) {
-			currentClass = (SqueakObject) currentClass.pointers[Squeak.CLASS_SUPERCLASS];
+			currentClass = (SqueakObject) currentClass.getPointer(Squeak.CLASS_SUPERCLASS);
 			if (currentClass == nilObj)
 				return false;
 		}

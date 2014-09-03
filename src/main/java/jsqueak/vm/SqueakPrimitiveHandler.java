@@ -696,9 +696,9 @@ class SqueakPrimitiveHandler
             throw PrimitiveFailed;
         
         if (includeInstVars)  //pointers...   instVarAt and objectAt
-            return array.pointers[index-1];
+            return array.getPointer(index-1);
         if (array.format<6)   //pointers...   normal at:
-            return array.pointers[index-1+info.ivarOffset];
+            return array.getPointer(index-1+info.ivarOffset);
         if (array.format<8) {  // words... 
             int value= ((int[])array.getBits())[index-1];
             return pos32BitIntFor(value);
@@ -746,12 +746,12 @@ class SqueakPrimitiveHandler
         Object objToPut= vm.stackValue(0);
         if (includeInstVars) {
             // pointers...   instVarAtPut and objectAtPut
-            array.pointers[index-1]= objToPut; //eg, objectAt:
+            array.setPointer(index-1,objToPut); //eg, objectAt:
             return objToPut; 
         }
         if (array.format<6) {
             // pointers...   normal atPut
-            array.pointers[index-1+info.ivarOffset]= objToPut;
+            array.setPointer(index-1+info.ivarOffset,objToPut);
             return objToPut; 
         }
         int intToPut;
@@ -988,7 +988,7 @@ class SqueakPrimitiveHandler
         {
             if (classOrSuper == theClass) 
                 return true;
-            classOrSuper= ((SqueakObject)classOrSuper).pointers[Squeak.CLASS_SUPERCLASS];
+            classOrSuper= ((SqueakObject)classOrSuper).getPointer(Squeak.CLASS_SUPERCLASS);
         }
         return false; 
     }
@@ -1200,8 +1200,8 @@ class SqueakPrimitiveHandler
         SqueakObject offsetObj= checkNonSmallInt(cursorObj.getPointer(4)); 
         if ( !isA(offsetObj,Squeak.splOb_ClassPoint))
             throw PrimitiveFailed;
-        int offsetX = checkSmallInt(offsetObj.pointers[0]);
-        int offsetY = checkSmallInt(offsetObj.pointers[1]);
+        int offsetX = checkSmallInt(offsetObj.getPointer(0));
+        int offsetY = checkSmallInt(offsetObj.getPointer(1));
         //Current cursor code in Screen expects cursor and mask to be packed in cursorBytes
         //For now we make them be equal copies of incoming 16x16 cursor
         int cursorBitsSize= cursorForm.getBits().length;
