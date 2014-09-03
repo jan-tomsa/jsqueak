@@ -23,6 +23,8 @@ THE SOFTWARE.
 
 package jsqueak.vm;
 
+import static jsqueak.vm.SqueakMath.*;
+
 import java.io.FileInputStream;
 import java.util.Arrays;
 
@@ -84,8 +86,7 @@ public class SqueakVM {
 	// 31-bit small Integers, range:
 	public static final int MAX_SMALL_INT =  0x3FFFFFFF;
 	public static final int MIN_SMALL_INT = -0x40000000;
-    public static final int NON_SMALL_INT = -0x50000000; //non-small and neg(so non pos32 too)
-    public static final int MILLISECOND_CLOCK_MASK = MAX_SMALL_INT>>1; //keeps ms logic in small int range
+	public static final int MILLISECOND_CLOCK_MASK = MAX_SMALL_INT>>1; //keeps ms logic in small int range
     
     int byteCount= 0;
     FileInputStream byteTracker;
@@ -430,17 +431,17 @@ public class SqueakVM {
               case 183: setSuccess(true);
                   if (!pushBoolAndPeek(stackInteger(1) != stackInteger(0)))  sendSpecial(byteCode&0xF); break;  // NEQ ~=
               case 184: setSuccess(true);
-                  if (!pop2AndPushIntResult(safeMultiply(stackInteger(1),stackInteger(0)))) sendSpecial(byteCode&0xF); break;  // TIMES *
+                  if (!pop2AndPushIntResult(safeMultiply(stackInteger(1), stackInteger(0)))) sendSpecial(byteCode&0xF); break;  // TIMES *
               case 185: setSuccess(true);
-                  if (!pop2AndPushIntResult(quickDivide(stackInteger(1),stackInteger(0)))) sendSpecial(byteCode&0xF); break;  // Divide /
+                  if (!pop2AndPushIntResult(quickDivide(stackInteger(1), stackInteger(0)))) sendSpecial(byteCode&0xF); break;  // Divide /
               case 186: setSuccess(true);
-                  if (!pop2AndPushIntResult(mod(stackInteger(1),stackInteger(0)))) sendSpecial(byteCode&0xF); break;  // MOD \\
+                  if (!pop2AndPushIntResult(mod(stackInteger(1), stackInteger(0)))) sendSpecial(byteCode&0xF); break;  // MOD \\
               case 187: setSuccess(true);
                   if (!primHandler.primitiveMakePoint()) sendSpecial(byteCode&0xF); break;  // MakePt int@int
               case 188: setSuccess(true); // Something is wrong with this one...
                   /*if (!pop2AndPushIntResult(safeShift(stackInteger(1),stackInteger(0))))*/ sendSpecial(byteCode&0xF); break; // bitShift:
               case 189: setSuccess(true);
-                  if (!pop2AndPushIntResult(div(stackInteger(1),stackInteger(0)))) sendSpecial(byteCode&0xF); break;  // Divide //
+                  if (!pop2AndPushIntResult(div(stackInteger(1), stackInteger(0)))) sendSpecial(byteCode&0xF); break;  // Divide //
               case 190: setSuccess(true);
                   if (!pop2AndPushIntResult(stackInteger(1) & stackInteger(0))) sendSpecial(byteCode&0xF); break; // bitAnd:
               case 191: setSuccess(true);
@@ -685,50 +686,6 @@ public class SqueakVM {
 		popNandPush(2, boolResult ? getTrueObj() : getFalseObj());
 		pc = originalPC;
 		return true;
-	}
-    
-	// Java rounds toward zero, we also need towards -infinity, so...
-	public static int div(int rcvr, int arg) {
-		// do this without floats asap
-		if (arg == 0)
-			return NON_SMALL_INT; // fail if divide by zero
-		return (int) Math.floor((double) rcvr / arg);
-	}
-
-	public static int quickDivide(int rcvr, int arg) {
-		// only handles exact case
-		if (arg == 0)
-			return NON_SMALL_INT; // fail if divide by zero
-		int result = rcvr / arg;
-		if (result * arg == rcvr)
-			return result;
-		return NON_SMALL_INT; // fail if result is not exact
-	}
-
-	public static int mod(int rcvr, int arg) {
-		if (arg == 0)
-			return NON_SMALL_INT; // fail if divide by zero
-		return rcvr - div(rcvr, arg) * arg;
-	}
-
-	public static int safeMultiply(int multiplicand, int multiplier) {
-		int product = multiplier * multiplicand;
-		// check for overflow by seeing if computation is reversible
-		if (multiplier == 0)
-			return product;
-		if ((product / multiplier) == multiplicand)
-			return product;
-		return NON_SMALL_INT; // non-small result will cause failure
-	}
-
-	public static int safeShift(int bitsToShift, int shiftCount) {
-		if (shiftCount < 0)
-			return bitsToShift >> -shiftCount; // OK ot lose bits shifting right
-		// check for lost bits by seeing if computation is reversible
-		int shifted = bitsToShift << shiftCount;
-		if ((shifted >>> shiftCount) == bitsToShift)
-			return shifted;
-		return NON_SMALL_INT; // non-small result will cause failure
 	}
 
 	public void send(SqueakObject selector, int argCount, boolean doSuper) {

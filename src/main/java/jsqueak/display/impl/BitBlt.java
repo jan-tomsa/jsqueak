@@ -26,6 +26,7 @@ package jsqueak.display.impl;
 import java.awt.Rectangle;
 
 import jsqueak.Squeak;
+import jsqueak.vm.SqueakMath;
 import jsqueak.vm.SqueakObject;
 import jsqueak.vm.SqueakVM;
 import jsqueak.vm.FormCache;
@@ -441,7 +442,7 @@ public class BitBlt
     }
     
     int halftoneAt(int index) {
-        return halftoneBits[SqueakVM.mod(index,halftoneHeight)]; 
+        return halftoneBits[SqueakMath.mod(index, halftoneHeight)];
     }
     
     int srcLongAt(int index) {

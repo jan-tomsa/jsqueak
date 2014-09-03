@@ -23,6 +23,8 @@ THE SOFTWARE.
 
 package jsqueak.vm;
 
+import static jsqueak.vm.SqueakMath.*;
+
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -152,7 +154,7 @@ class SqueakPrimitiveHandler
         int rcvr= stackPos32BitValue(1);
         int arg= stackInteger(0);
 
-        return pos32BitIntFor(SqueakVM.safeShift(rcvr,arg)); 
+        return pos32BitIntFor(safeShift(rcvr, arg));
     }
     
     private int doQuo(int rcvr, int arg) {
@@ -187,12 +189,12 @@ class SqueakPrimitiveHandler
                 case 6: return pop2andDoBool(stackInteger(1)>=stackInteger(0));  // Integer.geq
                 case 7: return pop2andDoBool(stackInteger(1)==stackInteger(0));  // Integer.equal
                 case 8: return pop2andDoBool(stackInteger(1)!=stackInteger(0));  // Integer.notequal
-                case 9: popNandPushInt(2,SqueakVM.safeMultiply(stackInteger(1),stackInteger(0)));  // Integer.multiply *
+                case 9: popNandPushInt(2, safeMultiply(stackInteger(1), stackInteger(0)));  // Integer.multiply *
                         break;
-                case 10: popNandPushInt(2,SqueakVM.quickDivide(stackInteger(1),stackInteger(0)));  // Integer.divide /  (fails unless exact exact)
+                case 10: popNandPushInt(2, quickDivide(stackInteger(1), stackInteger(0)));  // Integer.divide /  (fails unless exact exact)
                          break;
                 case 11: return false; //popNandPushIntIfOK(2,doMod(stackInteger(1),stackInteger(0)));  // Integer.mod \\
-                case 12: popNandPushInt(2,SqueakVM.div(stackInteger(1),stackInteger(0)));  // Integer.div //
+                case 12: popNandPushInt(2, div(stackInteger(1), stackInteger(0)));  // Integer.div //
                          break;
                 case 13: popNandPushInt(2,doQuo(stackInteger(1),stackInteger(0)));  // Integer.quo
                          break;

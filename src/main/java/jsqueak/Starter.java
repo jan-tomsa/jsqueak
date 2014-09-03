@@ -63,8 +63,10 @@ public class Starter {
         File saved = new File( pathname );
         if ( saved.exists() )
             return new SqueakImage( saved, monitor );
-        
-        throw new FileNotFoundException( "Cannot locate image " + pathname );
+
+	    final String message = "Cannot locate image '" + pathname + "'";
+	    monitor.logMessage(message);
+	    throw new FileNotFoundException(message);
     }
     
     /**
