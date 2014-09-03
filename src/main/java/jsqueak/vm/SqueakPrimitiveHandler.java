@@ -564,8 +564,9 @@ class SqueakPrimitiveHandler
     }
 
     Object squeakSeconds( long millis ) {
-        int secs = (int) ( millis / 1000 ); //milliseconds -> seconds
-        secs += ( 69 * 365 + 17 ) * 24 * 3600; //Adjust from 1901 to 1970
+        long secs = millis / 1000; //milliseconds -> seconds
+	    final long adjustment_from_1901_to_1970 = (69L * 365 + 17) * 24 * 3600;
+	    secs += adjustment_from_1901_to_1970;
         
         return pos32BitIntFor(secs);
     }
